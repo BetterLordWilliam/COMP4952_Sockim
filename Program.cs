@@ -1,10 +1,19 @@
 using COMP4952_Sockim.Components;
+using COMP4952_Sockim.Components.Pages;
+using COMP4952_Sockim.Hubs;
+using Microsoft.AspNetCore.ResponseCompression;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddResponseCompression(opts =>
+{
+    opts.MimeTypes = ResponseCompressionDefaults.MimeTypes
+        .Concat(new[] { "application/octet-stream" });
+});
 
 var app = builder.Build();
 
@@ -18,11 +27,14 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-
 app.UseAntiforgery();
+
+app.UseResponseCompression();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+app.MapHub<ChatHub>("/chathubtest");
 
 app.Run();

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("COMP4952_Sockim")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+692a02ff10683405182420c0bd16c8e9aa50efee")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2844ca44c11cb0856750bafa8fd10d21f7aa60ba")]
 [assembly: System.Reflection.AssemblyProductAttribute("COMP4952_Sockim")]
 [assembly: System.Reflection.AssemblyTitleAttribute("COMP4952_Sockim")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
