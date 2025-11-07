@@ -1,71 +1,11 @@
 ﻿@page "/"
-@implements IAsyncDisposable
-@rendermode InteractiveServer
-@inject NavigationManager NavManager
 
 @using Microsoft.AspNetCore.SignalR.Client
+@using COMP4952_Sockim.Components.Chat
 
 <PageTitle>Home</PageTitle>
-
-<h1>Connected: @IsConnected</h1>
-<div class="form-group">
-    <label>
-        User: <input @bind="_user" />
-    </label>
-    <label>
-        Message: <input @bind="_message" />
-    </label>
-</div>
-<button @onclick="Send" disabled="@(!IsConnected)">Send</button>
-<hr />
-<ul>
-    @foreach (string message in _messages)
-    {
-        <li>@message</li>
-    }
-</ul>
+<ChatForm></ChatForm>
 
 @code  {
-    private HubConnection? _hubConnection;
-    private List<string> _messages = new ();
-    private string? _user;
-    private string? _message;
-    public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
-    public void Test()
-    {
-        Console.WriteLine("This is a test");
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        _hubConnection = new HubConnectionBuilder()
-            .WithUrl(NavManager.ToAbsoluteUri("/chathubtest"))
-            .WithAutomaticReconnect()
-            .Build();
-
-        _hubConnection.On<string, string>("ReceiveMessage", (user, message) => {
-            string formatMessage = $"{user}: {message}";
-            _messages.Add(formatMessage);
-            InvokeAsync(StateHasChanged);
-        });
-
-        await _hubConnection.StartAsync();
-    }
-
-    private async Task Send()
-    {
-        if (_hubConnection is not null)
-        {
-            await _hubConnection.SendAsync("SendMessage", _user, _message);
-        }
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_hubConnection is not null)
-        {
-            await _hubConnection.DisposeAsync();
-        }
-    }
 }

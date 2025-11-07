@@ -1,0 +1,86 @@
+﻿@using Microsoft.AspNetCore.SignalR.Client
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavManager
+
+<div class="chat-container">
+    <h1>Connected: @IsConnected</h1>
+    <div class="message-list-wrapper" @ref="_messageListWrapper">
+        <ul class="message-list">
+            @foreach (string message in _messages)
+            {
+                <li>@message</li>
+            }
+        </ul>
+    </div>
+    <div class="input-controls">
+        <div class="form-group">
+            <label>
+                User: <input @bind="_user" />
+            </label>
+            <br />
+            <label>
+                Message: <input @bind="_message" />
+            </label>
+        </div>
+        <button @onclick="Send" disabled="@(!IsConnected)">Send</button>
+    </div>
+</div>
+
+@code {
+    private ElementReference _messageListWrapper;
+    private HubConnection? _hubConnection;
+    private List<string> _messages = new();
+    private string? _user;
+    private string? _message;
+    public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
+
+    public void Test()
+    {
+        Console.WriteLine("This is a test");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hubConnection = new HubConnectionBuilder()
+        .WithUrl(NavManager.ToAbsoluteUri("/chathubtest"))
+        .WithAutomaticReconnect()
+        .Build();
+
+        _hubConnection.On<string, string>("ReceiveMessage", (user, message) =>
+        {
+            string formatMessage = $"{user}: {message}";
+            _messages.Add(formatMessage);
+            InvokeAsync(StateHasChanged);
+            InvokeAsync(ScrollToBottom);
+        });
+
+        await _hubConnection.StartAsync();
+    }
+
+    private async Task ScrollToBottom()
+    {
+        if (_messageListWrapper.Id != null)
+        {
+            await JSRuntime.InvokeVoidAsync("scrollToElementBottom", _messageListWrapper);
+        }
+    }
+
+    private async Task Send()
+    {
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.SendAsync("SendMessage", _user, _message);
+            await ScrollToBottom();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.DisposeAsync();
+        }
+    }
+}
