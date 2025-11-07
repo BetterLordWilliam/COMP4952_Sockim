@@ -1,4 +1,6 @@
-﻿@using Microsoft.AspNetCore.SignalR.Client
+﻿@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.SignalR.Client
 @rendermode InteractiveServer
 @implements IAsyncDisposable
 @inject IJSRuntime JSRuntime
@@ -16,9 +18,9 @@
     </div>
     <div class="input-controls">
         <div class="form-group">
-            <label>
+            @* <label>
                 User: <input @bind="_user" />
-            </label>
+            </label> *@
             <br />
             <label>
                 Message: <input @bind="_message" />
@@ -36,6 +38,10 @@
     private string? _message;
     public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
+    [CascadingParameter]
+    private Task<AuthenticationState>? _authenticationStateTask { get; set; }
+    private AuthenticationState? _authState;
+
     public void Test()
     {
         Console.WriteLine("This is a test");
@@ -43,6 +49,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _authState = await _authenticationStateTask;
         _hubConnection = new HubConnectionBuilder()
         .WithUrl(NavManager.ToAbsoluteUri("/chathubtest"))
         .WithAutomaticReconnect()
@@ -71,7 +78,7 @@
     {
         if (_hubConnection is not null)
         {
-            await _hubConnection.SendAsync("SendMessage", _user, _message);
+            await _hubConnection.SendAsync("SendMessage", _authState.User.Identity?.Name, _message);
             await ScrollToBottom();
         }
     }
