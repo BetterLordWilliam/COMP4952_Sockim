@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using COMP4952_Sockim.Components.Account;
 using COMP4952_Sockim.Data;
 using Microsoft.AspNetCore.Components.Authorization;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("ApplicationDbContextConnection") ?? throw new InvalidOperationException("Connection string 'ApplicationDbContextConnection' not found.");
@@ -38,6 +39,25 @@ builder.Services.AddIdentityCore<IdentityUser>(options => options.SignIn.Require
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Cookie.SameSite = SameSiteMode.None;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+});
+
+builder.Services.ConfigureExternalCookie(options =>
+{
+    options.Cookie.SameSite = SameSiteMode.None;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+});
+
+builder.Services.AddAntiforgery(options =>
+{
+    options.Cookie.SameSite = SameSiteMode.None;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.SuppressXFrameOptionsHeader = true;
+});
+
 builder.Services.AddSingleton<IEmailSender<IdentityUser>, IdentityNoOpEmailSender>();
 
 var app = builder.Build();
@@ -59,7 +79,10 @@ app.UseStaticFiles();
 app.MapStaticAssets();
 
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode(options =>
+    {
+        options.ContentSecurityFrameAncestorsPolicy = "*";
+    });
 
 app.MapHub<ChatHub>("chathubtest");
 
