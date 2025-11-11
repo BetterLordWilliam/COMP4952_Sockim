@@ -4,8 +4,8 @@
 @using Microsoft.AspNetCore.Identity
 @using COMP4952_Sockim.Data
 
-@inject SignInManager<IdentityUser> SignInManager
-@inject UserManager<IdentityUser> UserManager
+@inject SignInManager<ChatUser> SignInManager
+@inject UserManager<ChatUser> UserManager
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<LoginWith2fa> Logger
 
@@ -46,7 +46,7 @@
 
 @code {
     private string? message;
-    private IdentityUser user = default!;
+    private ChatUser user = default!;
 
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = new();

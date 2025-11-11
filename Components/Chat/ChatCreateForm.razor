@@ -1,5 +1,4 @@
-﻿@using COMP4952_Sockim.Components.Account.Pages.Manage
-@using COMP4952_Sockim.Models
+﻿@using COMP4952_Sockim.Data
 @using COMP4952_Sockim.Components.Chat
 @using Microsoft.IdentityModel.Tokens
 
@@ -15,7 +14,7 @@
     </label>
     <br />
     <label>
-        User Emails (comma seperated):
+        User Emails (space seperated):
         <div>
             @{
                 int i = 0;
@@ -55,12 +54,12 @@
     }
 
     private void OnChatCreateSubmit() {
-        Chat chat = new();
+        @* Chat chat = new();
         chat.ChatName = ChatName;
         chat.UserEmails = Emails;
-        chat.OwnerEmail = authState.User.Identity.Name;
+        chat.OwnerEmail = authState.User.Identity.Name; *@
 
-        Console.WriteLine(chat);
+        @* Console.WriteLine(chat); *@
 
         OnFormSubmit.InvokeAsync();
     }
@@ -85,7 +84,7 @@
 
         bool delete = e.Key == "Backspace";
 
-        Console.WriteLine(NewEmail);
+        @* Console.WriteLine(NewEmail); *@
 
         if (delete && NewEmail.Last() == ' ' && Emails.Count() > 0)
         {

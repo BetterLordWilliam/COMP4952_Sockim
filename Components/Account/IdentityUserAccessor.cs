@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Identity;
 
 namespace COMP4952_Sockim.Components.Account
 {
-    internal sealed class IdentityUserAccessor(UserManager<IdentityUser> userManager, IdentityRedirectManager redirectManager)
+    internal sealed class IdentityUserAccessor(UserManager<ChatUser> userManager, IdentityRedirectManager redirectManager)
     {
-        public async Task<IdentityUser> GetRequiredUserAsync(HttpContext context)
+        public async Task<ChatUser> GetRequiredUserAsync(HttpContext context)
         {
             var user = await userManager.GetUserAsync(context.User);
 

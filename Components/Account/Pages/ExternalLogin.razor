@@ -8,10 +8,10 @@
 @using Microsoft.AspNetCore.WebUtilities
 @using COMP4952_Sockim.Data
 
-@inject SignInManager<IdentityUser> SignInManager
-@inject UserManager<IdentityUser> UserManager
-@inject IUserStore<IdentityUser> UserStore
-@inject IEmailSender<IdentityUser> EmailSender
+@inject SignInManager<ChatUser> SignInManager
+@inject UserManager<ChatUser> UserManager
+@inject IUserStore<ChatUser> UserStore
+@inject IEmailSender<ChatUser> EmailSender
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<ExternalLogin> Logger
@@ -164,26 +164,26 @@
         message = $"Error: {string.Join(",", result.Errors.Select(error => error.Description))}";
     }
 
-    private IdentityUser CreateUser()
+    private ChatUser CreateUser()
     {
         try
         {
-            return Activator.CreateInstance<IdentityUser>();
+            return Activator.CreateInstance<ChatUser>();
         }
         catch
         {
-            throw new InvalidOperationException($"Can't create an instance of '{nameof(IdentityUser)}'. " +
-                $"Ensure that '{nameof(IdentityUser)}' is not an abstract class and has a parameterless constructor");
+            throw new InvalidOperationException($"Can't create an instance of '{nameof(ChatUser)}'. " +
+                $"Ensure that '{nameof(ChatUser)}' is not an abstract class and has a parameterless constructor");
         }
     }
 
-    private IUserEmailStore<IdentityUser> GetEmailStore()
+    private IUserEmailStore<ChatUser> GetEmailStore()
     {
         if (!UserManager.SupportsUserEmail)
         {
             throw new NotSupportedException("The default UI requires a user store with email support.");
         }
-        return (IUserEmailStore<IdentityUser>)UserStore;
+        return (IUserEmailStore<ChatUser>)UserStore;
     }
 
     private sealed class InputModel

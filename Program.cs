@@ -3,21 +3,25 @@ using COMP4952_Sockim.Hubs;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using COMP4952_Sockim.Components.Account;
-using COMP4952_Sockim.Data;
 using Microsoft.AspNetCore.Components.Authorization;
 using System.Net;
+using COMP4952_Sockim.Data;
+using Microsoft.Extensions.DependencyInjection;
+using COMP4952_Sockim.Components.Account;
 
 var builder = WebApplication.CreateBuilder(args);
+var connectionString = builder.Configuration.GetConnectionString("ChatDbContext") ?? throw new InvalidOperationException("Connection string 'ChatDbContextConnection' not found.");
 
-var connectionString = builder.Configuration.GetConnectionString("ApplicationDbContextConnection") ?? throw new InvalidOperationException("Connection string 'ApplicationDbContextConnection' not found.");
-
-builder.Services.AddDbContext<AuthDbContext>(options => options.UseSqlServer(connectionString));
-builder.Services.AddDbContext<ChatDbContext>(options => options.UseSqlServer(connectionString));
+// var connectionString = builder.Configuration.GetConnectionString("ApplicationDbContextConnection") ?? throw new InvalidOperationException("Connection string 'ApplicationDbContextConnection' not found.");
+// builder.Services.AddDbContext<AuthDbContext>(options => options.UseSqlServer(connectionString));
+// builder.Services.AddDbContext<ChatDbContext>(options => options.UseSqlServer(connectionString));
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddDbContext<ChatDbContext>(options =>
+    options.UseSqlServer(connectionString));
 
 builder.Services.AddSignalR();
 
@@ -36,10 +40,12 @@ builder.Services.AddAuthentication(options =>
     })
     .AddIdentityCookies();
 
-builder.Services.AddIdentityCore<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = false)
-    .AddEntityFrameworkStores<AuthDbContext>()
+builder.Services.AddIdentityCore<ChatUser>(options => options.SignIn.RequireConfirmedAccount = true)
+    .AddEntityFrameworkStores<ChatDbContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
+
+builder.Services.AddSingleton<IEmailSender<ChatUser>, IdentityNoOpEmailSender>();
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
@@ -58,8 +64,6 @@ builder.Services.AddAntiforgery(options =>
     options.SuppressXFrameOptionsHeader = true;
 });
 
-builder.Services.AddSingleton<IEmailSender<IdentityUser>, IdentityNoOpEmailSender>();
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -71,6 +75,10 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
+
+app.UseAuthorization();
 
 app.UseAntiforgery();
 

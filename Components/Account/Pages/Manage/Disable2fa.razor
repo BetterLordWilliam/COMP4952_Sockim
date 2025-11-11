@@ -3,7 +3,7 @@
 @using Microsoft.AspNetCore.Identity
 @using COMP4952_Sockim.Data
 
-@inject UserManager<IdentityUser> UserManager
+@inject UserManager<ChatUser> UserManager
 @inject IdentityUserAccessor UserAccessor
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<Disable2fa> Logger
@@ -31,7 +31,7 @@
 </div>
 
 @code {
-    private IdentityUser user = default!;
+    private ChatUser user = default!;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;

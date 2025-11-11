@@ -7,8 +7,8 @@
 @using Microsoft.AspNetCore.WebUtilities
 @using COMP4952_Sockim.Data
 
-@inject UserManager<IdentityUser> UserManager
-@inject IEmailSender<IdentityUser> EmailSender
+@inject UserManager<ChatUser> UserManager
+@inject IEmailSender<ChatUser> EmailSender
 @inject IdentityUserAccessor UserAccessor
 @inject NavigationManager NavigationManager
 
@@ -55,7 +55,7 @@
 
 @code {
     private string? message;
-    private IdentityUser user = default!;
+    private ChatUser user = default!;
     private string? email;
     private bool isEmailConfirmed;
 
