@@ -9,4 +9,6 @@ public class ChatInvitation
     public int ReceiverId { get; set; }
     public ChatUser Receiver { get; set; } = null!;
     public bool Accepted { get; set; }
+    public int ChatId { get; set; }
+    public Chat Chat { get; set; } = null!;
 }

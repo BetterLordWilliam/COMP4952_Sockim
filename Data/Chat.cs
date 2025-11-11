@@ -11,6 +11,7 @@ public class Chat
     public ChatUser ChatOwner { get; set; } = null!;
     public List<ChatUser> ChatUsers { get; set; } = [];
     public List<ChatMessage> Messages { get; set; } = [];
+    public List<ChatInvitation> Invitations { get; set; } = [];
 
     public override string ToString()
     {

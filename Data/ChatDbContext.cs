@@ -33,6 +33,12 @@ public class ChatDbContext : IdentityDbContext<ChatUser, IdentityRole<int>, int>
             .HasForeignKey(e => e.ChatId)
             .OnDelete(DeleteBehavior.Cascade);
 
+            c.HasMany(e => e.Invitations)
+            .WithOne(e => e.Chat)
+            .IsRequired()
+            .HasForeignKey(e => e.ChatId)
+            .OnDelete(DeleteBehavior.Cascade);
+
             c.HasOne(e => e.ChatOwner)
             .WithMany(e => e.OwnedChats)
             .IsRequired()
@@ -41,7 +47,7 @@ public class ChatDbContext : IdentityDbContext<ChatUser, IdentityRole<int>, int>
         });
 
         builder.Entity<ChatInvitation>()
-            .HasKey(e => new { e.SenderId, e.ReceiverId });
+            .HasKey(e => new { e.SenderId, e.ReceiverId, e.ChatId });
 
         builder.Entity<ChatUser>(cu =>
         {
