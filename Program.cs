@@ -66,7 +66,9 @@ builder.Services.AddAntiforgery(options =>
 });
 
 builder.Services.AddScoped<ChatService>();
+builder.Services.AddScoped<ChatUserService>();
 builder.Services.AddScoped<MessagesService>();
+builder.Services.AddScoped<InvitationsService>();
 
 var app = builder.Build();
 

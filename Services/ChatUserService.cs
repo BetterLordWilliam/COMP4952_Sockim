@@ -38,4 +38,24 @@ public class ChatUserService
             return null;
         }
     }
+
+    public ChatUser[]? GetUserByEmail(string[] emails)
+    {
+        try
+        {
+            var users = _chatDbContext.Users
+                .Where(u => emails.Contains(u.Email))
+                .ToArray();
+
+            _logger.LogInformation($"found users: {users.Count()}");
+
+            return users;
+        }
+        catch (OperationCanceledException ex)
+        {
+            _logger.LogError($"operation to get user with emails failed: {ex.Message}");
+
+            return null;
+        }
+    }
 }

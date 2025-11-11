@@ -20,7 +20,7 @@ public class ChatService
     /// Adds a new chat.
     /// </summary>
     /// <param name="newChat"></param>
-    public async void AddChat(Chat newChat)
+    public async Task AddChat(Chat newChat)
     {
         try
         {

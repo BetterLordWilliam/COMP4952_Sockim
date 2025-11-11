@@ -15,14 +15,29 @@ public class InvitationsService
         _chatDbContext = chatDbContext;
     }
 
+    public async Task AddInvitation(ChatInvitation[] invitations)
+    {
+        try
+        {
+            await _chatDbContext.Invitations.AddRangeAsync(invitations);
+            await _chatDbContext.SaveChangesAsync();
+
+            _logger.LogInformation("add invitations success");
+        }
+        catch (OperationCanceledException ex)
+        {
+            _logger.LogInformation($"could not add multiple invitations: {ex.Message}");
+        }
+    }
+
     public async Task AddInvitation(ChatInvitation invitation)
     {
         try
         {
-            var addInvitationRes = await _chatDbContext.Invitations.AddAsync(invitation);
-            var updateRes = await _chatDbContext.SaveChangesAsync();
+            await _chatDbContext.Invitations.AddAsync(invitation);
+            await _chatDbContext.SaveChangesAsync();
 
-            _logger.LogInformation($"curiosity {updateRes}");
+            _logger.LogInformation($"add invitation success");
         }
         catch (OperationCanceledException ex)
         {

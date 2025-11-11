@@ -1,11 +1,16 @@
 ﻿@using COMP4952_Sockim.Data
 @using COMP4952_Sockim.Components.Chat
 @using COMP4952_Sockim.Services
+@using Microsoft.AspNetCore.Identity
 @using Microsoft.IdentityModel.Tokens
+@using System.Security.Claims
 
 @rendermode InteractiveServer
+@inject UserManager<ChatUser> UserManager
 @inject AuthenticationStateProvider ASP
 @inject ChatService ChatService
+@inject ChatUserService ChatUserService
+@inject InvitationsService InvitationsService
 
 <h3>ChatCreateForm</h3>
 
@@ -44,7 +49,9 @@
     [Parameter]
     public EventCallback OnFormSubmit { get; set; }
 
-    private AuthenticationState authState;
+    private ChatUser _user;
+    private AuthenticationState _authState;
+    private ClaimsPrincipal _claimsPrincipal;
 
     private string ChatName { get; set; } = string.Empty;
     private List<string> Emails { get; set; } = new ();
@@ -53,10 +60,15 @@
 
     protected override async Task OnInitializedAsync()
     {
-        authState = await ASP.GetAuthenticationStateAsync();
+        _authState = await ASP.GetAuthenticationStateAsync();
+        _claimsPrincipal = _authState.User;
+        if (_authState.User.Identity!.IsAuthenticated)
+        {
+            _user = (await UserManager.GetUserAsync(_claimsPrincipal))!;
+        }
     }
 
-    private void OnChatCreateSubmit() {
+    private async void OnChatCreateSubmit() {
         @* Chat chat = new();
         chat.ChatName = ChatName;
         chat.UserEmails = Emails;
@@ -64,9 +76,27 @@
 
         @* Console.WriteLine(chat); *@
 
-        // Check that each user exists
+        // Create a new chat entity
+        Chat newChat        = new ();
+        newChat.ChatName    = ChatName;
+        newChat.ChatOwner   = _user;
+        newChat.ChatUsers.Add(_user);
 
-        OnFormSubmit.InvokeAsync();
+        await ChatService.AddChat(newChat);
+
+        // Get the users corresponding to the emails that were given
+        ChatUser[]? invitedUsers = ChatUserService.GetUserByEmail(Emails.ToArray());
+        List<ChatInvitation> invitations = [];
+        foreach (ChatUser invitedUser in invitedUsers!)
+        {
+            ChatInvitation invitation = new ();
+            invitation.Sender = _user;
+            invitation.Receiver = invitedUser;
+            invitation.Chat = newChat;
+            invitations.Add(invitation);
+        }
+
+        await InvitationsService.AddInvitation(invitations.ToArray());
     }
 
     private void AddEmail(KeyboardEventArgs e)
