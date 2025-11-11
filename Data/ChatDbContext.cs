@@ -12,6 +12,7 @@ public class ChatDbContext : IdentityDbContext<ChatUser, IdentityRole<int>, int>
 {
     public DbSet<Chat> Chats { get; set; }
     public DbSet<ChatMessage> Messages { get; set; }
+    public DbSet<ChatInvitation> Invitations { get; set; }
 
     public ChatDbContext(DbContextOptions<ChatDbContext> options) : base(options)
     {
