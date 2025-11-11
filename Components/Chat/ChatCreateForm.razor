@@ -18,24 +18,31 @@
 <form @onsubmit="OnChatCreateSubmit">
     <label>
         Chat name:
-        <input type="text" @bind-value="ChatName"></input>
+        <input type="text" @bind-value="_chatName"></input>
     </label>
     <br />
     <label>
-        User Emails (space seperated):
+        User emails (space seperated):
+        @if(_isBadEmail)
+        {
+            <div>
+                @_badEmailMessage: @_badEmail
+            </div>
+        }
         <div>
             @{
                 int i = 0;
-                foreach (var email in Emails)
+                foreach (var email in _emails)
                 {
                     if (i == 0) { <span>@email</span> } else { <span>, @email</span> }
+                    <button type="button" @onclick="() => RemoveEmail(email)">X</button>
                     i++;
                 }
             }
         </div>
         <input  type="text"
                 placeholder=""
-                @bind-value=NewEmail
+                @bind-value=_newEmail
                 @bind-value:event="oninput"
                 @onkeydown="AddEmail" />
     </label>
@@ -53,10 +60,14 @@
     private AuthenticationState _authState;
     private ClaimsPrincipal _claimsPrincipal;
 
-    private string ChatName { get; set; } = string.Empty;
-    private List<string> Emails { get; set; } = new ();
-    private string NewEmail { get; set; } = string.Empty;
-    private int LastEmail { get; set; } = -1;
+    private string _chatName { get; set; } = string.Empty;
+    private List<string> _emails { get; set; } = new ();
+    private string _newEmail { get; set; } = string.Empty;
+    private int _lastEmail { get; set; } = -1;
+
+    private string _badEmail { get; set; } = string.Empty;
+    private string _badEmailMessage { get; set; } = string.Empty;
+    private bool _isBadEmail = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -70,22 +81,22 @@
 
     private async void OnChatCreateSubmit() {
         @* Chat chat = new();
-        chat.ChatName = ChatName;
-        chat.UserEmails = Emails;
+        chat._chatName = _chatName;
+        chat.User_emails = _emails;
         chat.OwnerEmail = authState.User.Identity.Name; *@
 
         @* Console.WriteLine(chat); *@
 
         // Create a new chat entity
         Chat newChat        = new ();
-        newChat.ChatName    = ChatName;
+        newChat.ChatName    = _chatName;
         newChat.ChatOwner   = _user;
         newChat.ChatUsers.Add(_user);
 
         await ChatService.AddChat(newChat);
 
-        // Get the users corresponding to the emails that were given
-        ChatUser[]? invitedUsers = ChatUserService.GetUserByEmail(Emails.ToArray());
+        // Get the users corresponding to the _emails that were given
+        ChatUser[]? invitedUsers = ChatUserService.GetUserByEmail(_emails.ToArray());
         List<ChatInvitation> invitations = [];
         foreach (ChatUser invitedUser in invitedUsers!)
         {
@@ -97,36 +108,54 @@
         }
 
         await InvitationsService.AddInvitation(invitations.ToArray());
+
+        await OnFormSubmit.InvokeAsync();
     }
 
     private void AddEmail(KeyboardEventArgs e)
     {
         bool checkKey = e.Key == " ";
 
-        @* Console.WriteLine("\n", checkKey && !NewEmail.IsNullOrEmpty() && !Emails.Contains(NewEmail));
-        Console.WriteLine(checkKey);
-        Console.WriteLine(!NewEmail.IsNullOrEmpty());
-        Console.WriteLine(NewEmail);
-        Console.WriteLine(!Emails.Contains(NewEmail)); *@
-
-        if(checkKey && !NewEmail.IsNullOrEmpty() && !Emails.Contains(NewEmail))
+        if(checkKey && !_newEmail.IsNullOrEmpty() && !_emails.Contains(_newEmail))
         {
-            Emails.Add(NewEmail);
-            LastEmail = Emails.Count() - 1;
-            NewEmail = string.Empty;
+            if (_newEmail == _user.Email)
+            {
+                _badEmail = _newEmail;
+                _isBadEmail = true;
+                _badEmailMessage = "cannot invite yourself to a group";
+
+                return;
+            }
+
+            bool userHasEmail = ChatUserService.GetUserByEmail(_newEmail) is not null;
+
+            if (!userHasEmail)
+            {
+                _badEmail = _newEmail;
+                _isBadEmail = true;
+                _badEmailMessage = "no such user";
+
+                return;
+            }
+
+            _emails.Add(_newEmail);
+            _lastEmail = _emails.Count() - 1;
+            _newEmail = string.Empty;
+            _isBadEmail = false;
+
             return;
         }
 
         bool delete = e.Key == "Backspace";
 
-        @* Console.WriteLine(NewEmail); *@
+        @* Console.WriteLine(_newEmail); *@
 
-        if (delete && NewEmail.Last() == ' ' && Emails.Count() > 0)
+        if (delete && !_isBadEmail && _newEmail.Last() == ' ' && _emails.Count() > 0)
         {
             try
             {
-                Emails.RemoveAt(LastEmail);
-                LastEmail -= 1;
+                _emails.RemoveAt(_lastEmail);
+                _lastEmail -= 1;
             } catch (ArgumentOutOfRangeException err)
             {
                 Console.WriteLine($"Nothing to remove {err.Message}");
@@ -137,9 +166,9 @@
 
     private void RemoveEmail(string email)
     {
-        if (Emails.Contains(email))
+        if (_emails.Contains(email))
         {
-            Emails.Remove(email);
+            _emails.Remove(email);
         }
     }
 }
