@@ -1,10 +1,13 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
 namespace COMP4952_Sockim.Data;
 
 public class Chat
 {
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
     public string ChatName { get; set; } = string.Empty;
     public int ChatOwnerId { get; set; }

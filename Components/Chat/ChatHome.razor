@@ -1,25 +1,36 @@
-﻿
+﻿@using COMP4952_Sockim.Services
+@using COMP4952_Sockim.Data
+
 @rendermode InteractiveServer
 @inject AuthenticationStateProvider ASP
+@inject ChatService ChatService
 
 <h1>Sockim</h1>
 
 <button @onclick="OnAddChat">Add Chat</button>
 
-@if(showCreateChat) {
+@if(_showCreateChat) {
     <ChatCreateForm OnFormSubmit="@FormSubmit"></ChatCreateForm>
 }
 
 @code {
-    private bool showCreateChat = false;
+    private bool _showCreateChat = false;
+    private Chat[] _chats = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        _chats = await ChatService.GetChats(null);
+    }
 
     private void OnAddChat()
     {
-        showCreateChat = true;
+        _showCreateChat = true;
     }
 
     private void FormSubmit()
     {
-        showCreateChat = false;
+        _showCreateChat = false;
     }
 }

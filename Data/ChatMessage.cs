@@ -8,6 +8,8 @@ namespace COMP4952_Sockim.Data;
 
 public class ChatMessage
 {
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
     public DateTime MessageDateTime { get; set; }
     public string MessageContent { get; set; } = string.Empty;

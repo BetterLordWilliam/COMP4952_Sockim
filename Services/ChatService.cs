@@ -60,7 +60,7 @@ public class ChatService
     /// </summary>
     /// <param name="chatUser"></param>
     /// <returns></returns>
-    public async Task<Chat[]> GetChats(ChatUser? chatUser)
+    public async Task<Chat[]> GetChatsForUser(ChatUser? chatUser)
     {
         try
         {
@@ -71,7 +71,7 @@ public class ChatService
         }
         catch (NullReferenceException ex)
         {
-            _logger.LogError($"no chats for null user");
+            _logger.LogError($"no chats for null user: {ex.Message}");
 
             return Array.Empty<Chat>();
         }

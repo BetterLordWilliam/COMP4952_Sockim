@@ -11,14 +11,18 @@ using COMP4952_Sockim.Components.Account;
 using COMP4952_Sockim.Services;
 
 var builder = WebApplication.CreateBuilder(args);
-var connectionString = builder.Configuration.GetConnectionString("ChatDbContext") ?? throw new InvalidOperationException("Connection string 'ChatDbContextConnection' not found.");
+// var connectionString = builder.Configuration.GetConnectionString("ChatDbContext") ?? throw new InvalidOperationException("Connection string 'ChatDbContextConnection' not found.");
+var connectionString = builder.Configuration.GetConnectionString("ChatDbContextMySql") ?? throw new InvalidOperationException("Connection string was really bad");
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// builder.Services.AddDbContext<ChatDbContext>(options =>
+//     options.UseSqlServer(connectionString));
+
 builder.Services.AddDbContext<ChatDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseMySQL(connectionString));
 
 builder.Services.AddSignalR();
 
