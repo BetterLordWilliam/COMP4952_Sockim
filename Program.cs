@@ -9,9 +9,11 @@ using Microsoft.AspNetCore.Components.Authorization;
 using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
+
 var connectionString = builder.Configuration.GetConnectionString("ApplicationDbContextConnection") ?? throw new InvalidOperationException("Connection string 'ApplicationDbContextConnection' not found.");
-builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
-;
+
+builder.Services.AddDbContext<AuthDbContext>(options => options.UseSqlServer(connectionString));
+builder.Services.AddDbContext<ChatDbContext>(options => options.UseSqlServer(connectionString));
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -34,8 +36,8 @@ builder.Services.AddAuthentication(options =>
     })
     .AddIdentityCookies();
 
-builder.Services.AddIdentityCore<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
-    .AddEntityFrameworkStores<ApplicationDbContext>()
+builder.Services.AddIdentityCore<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = false)
+    .AddEntityFrameworkStores<AuthDbContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
@@ -44,13 +46,11 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.Cookie.SameSite = SameSiteMode.None;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 });
-
 builder.Services.ConfigureExternalCookie(options =>
 {
     options.Cookie.SameSite = SameSiteMode.None;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 });
-
 builder.Services.AddAntiforgery(options =>
 {
     options.Cookie.SameSite = SameSiteMode.None;
@@ -84,7 +84,7 @@ app.MapRazorComponents<App>()
         options.ContentSecurityFrameAncestorsPolicy = "*";
     });
 
-app.MapHub<ChatHub>("chathubtest");
+app.MapHub<TestChatHub>("chathubtest");
 
 app.MapAdditionalIdentityEndpoints();;
 

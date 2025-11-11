@@ -1,0 +1,25 @@
+﻿
+@rendermode InteractiveServer
+@inject AuthenticationStateProvider ASP
+
+<h1>Sockim</h1>
+
+<button @onclick="OnAddChat">Add Chat</button>
+
+@if(showCreateChat) {
+    <ChatCreateForm OnFormSubmit="@FormSubmit"></ChatCreateForm>
+}
+
+@code {
+    private bool showCreateChat = false;
+
+    private void OnAddChat()
+    {
+        showCreateChat = true;
+    }
+
+    private void FormSubmit()
+    {
+        showCreateChat = false;
+    }
+}

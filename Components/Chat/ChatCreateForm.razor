@@ -1,0 +1,111 @@
+﻿@using COMP4952_Sockim.Components.Account.Pages.Manage
+@using COMP4952_Sockim.Models
+@using COMP4952_Sockim.Components.Chat
+@using Microsoft.IdentityModel.Tokens
+
+@rendermode InteractiveServer
+@inject AuthenticationStateProvider ASP
+
+<h3>ChatCreateForm</h3>
+
+<form @onsubmit="OnChatCreateSubmit">
+    <label>
+        Chat name:
+        <input type="text" @bind-value="ChatName"></input>
+    </label>
+    <br />
+    <label>
+        User Emails (comma seperated):
+        <div>
+            @{
+                int i = 0;
+                foreach (var email in Emails)
+                {
+                    if (i == 0) { <span>@email</span> } else { <span>, @email</span> }
+                    i++;
+                }
+            }
+        </div>
+        <input  type="text"
+                placeholder=""
+                @bind-value=NewEmail
+                @bind-value:event="oninput"
+                @onkeydown="AddEmail" />
+    </label>
+    <br />
+    <button type="submit">
+        Submit
+    </button>
+</form>
+
+@code {
+    [Parameter]
+    public EventCallback OnFormSubmit { get; set; }
+
+    private AuthenticationState authState;
+
+    private string ChatName { get; set; } = string.Empty;
+    private List<string> Emails { get; set; } = new ();
+    private string NewEmail { get; set; } = string.Empty;
+    private int LastEmail { get; set; } = -1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        authState = await ASP.GetAuthenticationStateAsync();
+    }
+
+    private void OnChatCreateSubmit() {
+        Chat chat = new();
+        chat.ChatName = ChatName;
+        chat.UserEmails = Emails;
+        chat.OwnerEmail = authState.User.Identity.Name;
+
+        Console.WriteLine(chat);
+
+        OnFormSubmit.InvokeAsync();
+    }
+
+    private void AddEmail(KeyboardEventArgs e)
+    {
+        bool checkKey = e.Key == " ";
+
+        @* Console.WriteLine("\n", checkKey && !NewEmail.IsNullOrEmpty() && !Emails.Contains(NewEmail));
+        Console.WriteLine(checkKey);
+        Console.WriteLine(!NewEmail.IsNullOrEmpty());
+        Console.WriteLine(NewEmail);
+        Console.WriteLine(!Emails.Contains(NewEmail)); *@
+
+        if(checkKey && !NewEmail.IsNullOrEmpty() && !Emails.Contains(NewEmail))
+        {
+            Emails.Add(NewEmail);
+            LastEmail = Emails.Count() - 1;
+            NewEmail = string.Empty;
+            return;
+        }
+
+        bool delete = e.Key == "Backspace";
+
+        Console.WriteLine(NewEmail);
+
+        if (delete && NewEmail.Last() == ' ' && Emails.Count() > 0)
+        {
+            try
+            {
+                Emails.RemoveAt(LastEmail);
+                LastEmail -= 1;
+            } catch (ArgumentOutOfRangeException err)
+            {
+                Console.WriteLine($"Nothing to remove {err.Message}");
+            }
+            return;
+        }
+    }
+
+    private void RemoveEmail(string email)
+    {
+        if (Emails.Contains(email))
+        {
+            Emails.Remove(email);
+        }
+    }
+}

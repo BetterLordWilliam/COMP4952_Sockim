@@ -1,12 +1,16 @@
 ﻿@page "/"
 @attribute [Authorize]
+@rendermode InteractiveServer
 
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
 @using COMP4952_Sockim.Components.Chat
 
 <PageTitle>Home</PageTitle>
-<ChatForm></ChatForm>
+<ChatHome></ChatHome>
+
+@* <ChatCreateForm></ChatCreateForm> *@
+@* <ChatForm></ChatForm> *@
 
 @code  {
 
