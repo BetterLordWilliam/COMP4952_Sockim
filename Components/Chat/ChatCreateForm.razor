@@ -9,6 +9,7 @@
 
 <h3>ChatCreateForm</h3>
 
+
 <form @onsubmit="OnChatCreateSubmit">
     <label>
         Chat name:
@@ -62,6 +63,8 @@
         chat.OwnerEmail = authState.User.Identity.Name; *@
 
         @* Console.WriteLine(chat); *@
+
+        // Check that each user exists
 
         OnFormSubmit.InvokeAsync();
     }

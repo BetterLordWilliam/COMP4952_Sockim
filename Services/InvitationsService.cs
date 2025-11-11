@@ -19,6 +19,10 @@ public class InvitationsService
     {
         try
         {
+            var addInvitationRes = await _chatDbContext.Invitations.AddAsync(invitation);
+            var updateRes = await _chatDbContext.SaveChangesAsync();
+
+            _logger.LogInformation($"curiosity {updateRes}");
         }
         catch (OperationCanceledException ex)
         {
