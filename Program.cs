@@ -8,13 +8,10 @@ using System.Net;
 using COMP4952_Sockim.Data;
 using Microsoft.Extensions.DependencyInjection;
 using COMP4952_Sockim.Components.Account;
+using COMP4952_Sockim.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("ChatDbContext") ?? throw new InvalidOperationException("Connection string 'ChatDbContextConnection' not found.");
-
-// var connectionString = builder.Configuration.GetConnectionString("ApplicationDbContextConnection") ?? throw new InvalidOperationException("Connection string 'ApplicationDbContextConnection' not found.");
-// builder.Services.AddDbContext<AuthDbContext>(options => options.UseSqlServer(connectionString));
-// builder.Services.AddDbContext<ChatDbContext>(options => options.UseSqlServer(connectionString));
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -63,6 +60,9 @@ builder.Services.AddAntiforgery(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     options.SuppressXFrameOptionsHeader = true;
 });
+
+builder.Services.AddScoped<ChatService>();
+builder.Services.AddScoped<MessagesService>();
 
 var app = builder.Build();
 
