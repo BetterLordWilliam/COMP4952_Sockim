@@ -1,4 +1,5 @@
 using System;
+using System.Security.Cryptography.Pkcs;
 using COMP4952_Sockim.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -37,6 +38,24 @@ public class ChatDbContext : IdentityDbContext<ChatUser, IdentityRole<int>, int>
             .IsRequired()
             .HasForeignKey(e => e.ChatOwnerId)
             .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        builder.Entity<ChatInvitation>()
+            .HasKey(e => new { e.SenderId, e.ReceiverId });
+
+        builder.Entity<ChatUser>(cu =>
+        {
+            cu.HasMany(e => e.SentInvitations)
+            .WithOne(e => e.Sender)
+            .HasForeignKey(e => e.SenderId)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Restrict);
+
+            cu.HasMany(e => e.ReceivedInvitations)
+            .WithOne(e => e.Receiver)
+            .HasForeignKey(e => e.ReceiverId)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<ChatMessage>()

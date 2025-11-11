@@ -9,4 +9,6 @@ public class ChatUser : IdentityUser<int>
     public List<Chat> Chats { get; set; } = [];
     public List<Chat> OwnedChats { get; set; } = [];
     public List<ChatMessage> ChatMessages { get; set; } = [];
+    public List<ChatInvitation> SentInvitations { get; set; } = [];
+    public List<ChatInvitation> ReceivedInvitations { get; set; } = [];
 }

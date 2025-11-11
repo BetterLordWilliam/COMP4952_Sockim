@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace COMP4952_Sockim.Migrations
 {
     [DbContext(typeof(ChatDbContext))]
-    [Migration("20251111044601_NewDb")]
-    partial class NewDb
+    [Migration("20251111051215_NewNewDb")]
+    partial class NewNewDb
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -45,6 +45,24 @@ namespace COMP4952_Sockim.Migrations
                     b.HasIndex("ChatOwnerId");
 
                     b.ToTable("Chats");
+                });
+
+            modelBuilder.Entity("COMP4952_Sockim.Data.ChatInvitation", b =>
+                {
+                    b.Property<int>("SenderId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReceiverId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Accepted")
+                        .HasColumnType("bit");
+
+                    b.HasKey("SenderId", "ReceiverId");
+
+                    b.HasIndex("ReceiverId");
+
+                    b.ToTable("ChatInvitation");
                 });
 
             modelBuilder.Entity("COMP4952_Sockim.Data.ChatMessage", b =>
@@ -241,12 +259,10 @@ namespace COMP4952_Sockim.Migrations
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<int>", b =>
                 {
                     b.Property<string>("LoginProvider")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("ProviderKey")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("ProviderDisplayName")
                         .HasColumnType("nvarchar(max)");
@@ -282,12 +298,10 @@ namespace COMP4952_Sockim.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("LoginProvider")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Name")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Value")
                         .HasColumnType("nvarchar(max)");
@@ -306,6 +320,25 @@ namespace COMP4952_Sockim.Migrations
                         .IsRequired();
 
                     b.Navigation("ChatOwner");
+                });
+
+            modelBuilder.Entity("COMP4952_Sockim.Data.ChatInvitation", b =>
+                {
+                    b.HasOne("COMP4952_Sockim.Data.ChatUser", "Receiver")
+                        .WithMany("ReceivedInvitations")
+                        .HasForeignKey("ReceiverId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("COMP4952_Sockim.Data.ChatUser", "Sender")
+                        .WithMany("SentInvitations")
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Receiver");
+
+                    b.Navigation("Sender");
                 });
 
             modelBuilder.Entity("COMP4952_Sockim.Data.ChatMessage", b =>
@@ -403,6 +436,10 @@ namespace COMP4952_Sockim.Migrations
                     b.Navigation("ChatMessages");
 
                     b.Navigation("OwnedChats");
+
+                    b.Navigation("ReceivedInvitations");
+
+                    b.Navigation("SentInvitations");
                 });
 #pragma warning restore 612, 618
         }
