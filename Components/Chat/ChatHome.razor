@@ -28,37 +28,47 @@
     }
 
     <p>Invitations</p>
-    @if(_user is not null && _invitationHubConnection is not null)
-    {
-        <ChatInvitations InvitationHubConnection=_invitationHubConnection User=_user/>
-    }
-
+    <ChatInvitations    InvitationHubConnection="@_invitationHubConnection"
+                        Invitations="@_invitations"
+                        User="@_user" />
     <p>Chats</p>
-    @foreach(ChatDto chat in _chats)
-    {
-        <button type="button" @onclick="() => OpenChat(chat)">@chat.ChatName</button>
-        <br />
-    }
+    <ChatList   ChatHubConnection="@_chatHubConnection"
+                User="@_user" />
 }
 else
 {
     <button type="button" @onclick="CloseChat">X</button>
     @if (_user is not null && _messageHubConnection is not null)
     {
-        <ChatForm MessageHubConnection=_messageHubConnection ChatDto=_chat User=_user/>
+        <ChatForm   MessageHubConnection="@_messageHubConnection"
+                    ChatDto="@_chat"
+                    User="@_user" />
     }
 }
 
 @code {
+    @* public event Action<ChatDto>? OnChatCreated;
+    public event Action<ChatDto[]>? OnChatsRetrieved;
+    public event Action<ChatInvitationDto>? OnInvitationCreated;
+    public event Action<ChatInvitationDto[]>? OnInvitationsRetrieved;
+    public event Action<ChatMessageDto>? OnMessageReceived;
+    public event Action<ChatMessageDto[]>? OnMessagesReceived; *@
+
     private bool _showCreateChat = false;
     private bool _chatOpen = false;
+
     private ElementReference _chatForm;
+
     [CascadingParameter]
     private Task<AuthenticationState>? _authState { get; set; }
     private ClaimsPrincipal _userClaim = null!;
+
     private ChatUser _user = null!;
     private ChatDto _chat = null!;
+
     private List<ChatDto> _chats = [];
+    private List<ChatInvitationDto> _invitations = [];
+
     private HubConnection? _chatHubConnection;
     private HubConnection? _invitationHubConnection;
     private HubConnection? _messageHubConnection;
@@ -85,21 +95,34 @@ else
 
             _chatHubConnection.On<ChatDto>("ChatCreated", async (ChatDto newChat) =>
             {
-                _chats.Add(newChat);
-                await InvokeAsync(StateHasChanged);
+                @* _chats.Add(newChat);
+                await InvokeAsync(StateHasChanged); *@
+                // OnChatCreated?.Invoke(newChat);
             });
 
             _chatHubConnection.On<ChatDto[]>("RetrievedChats", async (ChatDto[] retrievedChats) =>
             {
-                Console.WriteLine("Retrieved Chats");
-                _chats.AddRange(retrievedChats);
-                await InvokeAsync(StateHasChanged);
+                @* _chats.AddRange(retrievedChats);
+                await InvokeAsync(StateHasChanged); *@
+                // OnChatsRetrieved?.Invoke(retrievedChats);
+            });
+
+            _chatHubConnection.On<ChatInvitationDto>("IncomingInvitation", (ChatInvitationDto invitation) => {
+                Console.WriteLine("We are gettign somethign backl");    
+                _invitations.Add(invitation);
+                InvokeAsync(StateHasChanged);
             });
 
             _invitationHubConnection = new HubConnectionBuilder()
                 .WithUrl(NavManager.ToAbsoluteUri("/invitationhub"))
                 .WithAutomaticReconnect()
                 .Build();
+
+            _invitationHubConnection.On<ChatInvitationDto[]>("RetrievedInvitations", (ChatInvitationDto[] invitations) =>
+            {
+                _invitations = invitations.ToList();
+                InvokeAsync(StateHasChanged);
+            });
 
             _messageHubConnection = new HubConnectionBuilder()
                 .WithUrl(NavManager.ToAbsoluteUri("/messagehub"))
@@ -114,6 +137,7 @@ else
                 await _messageHubConnection.StartAsync();
 
             await _chatHubConnection.SendAsync("RetrieveChats", _user.Id);
+            await _invitationHubConnection.SendAsync("RetrieveInvitations", _user.Id);
         }
     }
 
@@ -138,5 +162,13 @@ else
     {
         _chatOpen = false;
         StateHasChanged();
+    }
+
+    private void AcceptInvitation(ChatInvitationDto invitationDto)
+    {
+    }
+
+    private void DeclineInvitation(ChatInvitationDto invitationDto)
+    {
     }
 }

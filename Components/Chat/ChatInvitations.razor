@@ -5,59 +5,67 @@
 @using Microsoft.Identity.Client
 @using System.Security.Claims
 
-@inject NavigationManager NavManager
-@inject AuthenticationStateProvider ASP
-@inject UserManager<ChatUser> UserManager
+@implements IAsyncDisposable
 
-@foreach(ChatInvitationDto invitation in _invitations)
+@if(User is not null && InvitationHubConnection is not null)
 {
-    <span>@invitation.ChatName, @invitation.SenderEmail, @invitation.ReceiverEmail</span>
-    <button type="button" @onclick="() => AcceptInvitation(invitation)">O</button>
-    <button type="button" @onclick="() => DeclineInvitation(invitation)">X</button>
+    @foreach(ChatInvitationDto invitation in Invitations)
+    {
+        <span>@invitation.ChatName, @invitation.SenderEmail, @invitation.ReceiverEmail</span>
+        <button type="button" @onclick="() => AcceptInvitation(invitation)">O</button>
+        <button type="button" @onclick="() => RejectInvitation(invitation)">X</button>
+        <hr />
+        <br />
+    }
 }
 
 @code {
     [Parameter]
-    public ChatUser User { get; set; } = null!;
+    public HubConnection? InvitationHubConnection { get; set; }
     [Parameter]
-    public HubConnection InvitationHubConnection { get; set; } = null!;
+    public Action<ChatInvitationDto>? OnInvitationCreated { get; set; }
+    [Parameter]
+    public Action<ChatInvitationDto[]>? OnInvitationsRetrieved { get; set; }
+    [Parameter]
+    public ChatUser? User { get; set; }
+    [Parameter]
+    public List<ChatInvitationDto> Invitations { get; set; } = [];
 
-    private bool IsConnected => InvitationHubConnection?.State == HubConnectionState.Connected;
-    private List<ChatInvitationDto> _invitations = [];
-    [CascadingParameter]
-    private Task<AuthenticationState>? _authState { get; set; }
-    private ClaimsPrincipal _claimsPrincipal = null!;
-
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        if (InvitationHubConnection is not null)
-        {
-            InvitationHubConnection = new HubConnectionBuilder()
-                .WithUrl(NavManager.ToAbsoluteUri("/invitationhub"))
-                .WithAutomaticReconnect()
-                .Build();
+        Console.WriteLine(OnInvitationCreated is not null);
+        Console.WriteLine(OnInvitationsRetrieved is not null);
 
-            InvitationHubConnection.On<ChatInvitationDto[]>("PendingInvitations", async (ChatInvitationDto[] invitations) => {
-                Console.WriteLine("Adding pending invitations");
-                _invitations.AddRange(invitations);
+        if (OnInvitationCreated is not null)
+            OnInvitationCreated += HandleInvitationCreated;
+        if (OnInvitationsRetrieved is not null)
+            OnInvitationsRetrieved += HandleInvitationsRetrieved;
 
-                await InvokeAsync(StateHasChanged);
-            });
+        Console.WriteLine(OnInvitationCreated is not null);
+        Console.WriteLine(OnInvitationsRetrieved is not null);
+    }
 
-            if (InvitationHubConnection.State == HubConnectionState.Disconnected)
-                await InvitationHubConnection.StartAsync();
-            
-            await InvitationHubConnection.SendAsync("GetPendingInvitations", User.Id);
-        }
+    private void HandleInvitationCreated(ChatInvitationDto invitation)
+    {
+    }
+
+    private void HandleInvitationsRetrieved(ChatInvitationDto[] invitations)
+    {
     }
 
     private void AcceptInvitation(ChatInvitationDto invitationDto)
     {
-
     }
 
-    private void DeclineInvitation(ChatInvitationDto invitationDto)
+    private void RejectInvitation(ChatInvitationDto invitationDto)
     {
+    }
 
+    public async ValueTask DisposeAsync()
+    {
+        if (OnInvitationCreated is not null)
+            OnInvitationCreated -= HandleInvitationCreated;
+        if (OnInvitationsRetrieved is not null)
+            OnInvitationsRetrieved -= HandleInvitationsRetrieved;
     }
 }

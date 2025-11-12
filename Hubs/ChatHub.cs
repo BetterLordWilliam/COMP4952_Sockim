@@ -4,6 +4,7 @@ using COMP4952_Sockim.Data;
 using COMP4952_Sockim.Models;
 using MySqlX.XDevAPI;
 using COMP4952_Sockim.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace COMP4952_Sockim.Hubs;
 
@@ -46,14 +47,13 @@ public class ChatHub : Hub
                 foreach (var invitation in invitations)
                 {
                     invitation.ChatId = createdChat.Id;
+                    await _invitationService.AddInvitation(invitation);
+                    await Clients.User(invitation.ReceiverId.ToString()).SendAsync("IncomingInvitation", invitation);
                 }
 
-                await _invitationService.AddInvitations(invitations.ToArray());
                 _logger.LogInformation($"Added {invitations.Count} invitations for chat {createdChat.Id}");
             }
 
-            // Broadcast the new chat to all clients
-            await Clients.All.SendAsync("ChatCreated", createdChat);
             _logger.LogInformation($"Chat '{createdChat.ChatName}' created successfully");
         }
         catch (Exception ex)

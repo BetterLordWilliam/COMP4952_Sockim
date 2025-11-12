@@ -1,0 +1,26 @@
+﻿@using COMP4952_Sockim.Data
+@using COMP4952_Sockim.Models
+@using Microsoft.AspNetCore.SignalR.Client
+
+@if (User is not null && ChatHubConnection is not null)
+{
+    @foreach(ChatDto chat in _chats)
+    {
+        <button type="button" @onclick="() => OpenChat(chat)">@chat.ChatName</button>
+        <hr />
+        <br />
+    }
+}
+
+@code {
+    [Parameter]
+    public HubConnection? ChatHubConnection { get; set; }
+    [Parameter]
+    public ChatUser? User { get; set; }
+
+    private List<ChatDto> _chats = [];
+
+    private void OpenChat(ChatDto chat)
+    {
+    }
+}

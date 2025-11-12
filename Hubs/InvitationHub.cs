@@ -76,7 +76,7 @@ public class InvitationHub : Hub
             // TODO: Implement:
             // 1. Delete invitation from database
             // 2. Notify relevant clients
-            
+
             /*
             ChatInvitation? invitation = _chatDbContext.Invitations
                 .FirstOrDefault(i => i.SenderId == invitationSenderId && 
@@ -100,10 +100,39 @@ public class InvitationHub : Hub
         }
     }
 
+    public async Task SendInvitation(ChatInvitationDto chatInvitationDto)
+    {
+        try
+        {
+            await _invitationsService.AddInvitation(chatInvitationDto);
+            await Clients.User($"{chatInvitationDto.ReceiverId}").SendAsync("IncomingInvitation", chatInvitationDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"error sending invitation {ex.Message}");
+        }
+    }
+
+    public async Task SendInvitations(ChatInvitationDto[] chatInvitationDtos)
+    {
+        try
+        {
+            foreach(ChatInvitationDto chatInvitationDto in chatInvitationDtos)
+            {
+                await _invitationsService.AddInvitation(chatInvitationDto);
+                await Clients.User($"{chatInvitationDto.ReceiverId}").SendAsync("IncomingInvitation", chatInvitationDto);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"error sending invitations {ex.Message}");
+        }
+    }
+
     /// <summary>
     /// Get all pending invitations for a user
     /// </summary>
-    public async Task GetPendingInvitations(int userId)
+    public async Task RetrieveInvitations(int userId)
     {
         try
         {
@@ -113,7 +142,7 @@ public class InvitationHub : Hub
             // 3. Send back to caller
 
             ChatInvitationDto[] pendingInvitations = await _invitationsService.GetUserInvitation(userId);
-            await Clients.Caller.SendAsync("PendingInvitations", pendingInvitations);
+            await Clients.Caller.SendAsync("RetrievedInvitations", pendingInvitations);
         }
         catch (Exception ex)
         {

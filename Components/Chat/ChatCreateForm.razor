@@ -48,7 +48,7 @@
                 @onkeydown="AddEmail" />
     </label>
     <br />
-    <button type="submit" disabled="@(!IsChatConnected)">
+    <button type="submit">
         Submit
     </button>
 </form>
@@ -57,7 +57,7 @@
     [Parameter]
     public ChatUser User { get; set; } = null!;
     [Parameter]
-    public HubConnection ChatHubConnection { get; set; } = null!;
+    public HubConnection? ChatHubConnection { get; set; }
 
     private string _chatName { get; set; } = string.Empty;
     private List<string> _emails { get; set; } = new ();
@@ -65,7 +65,6 @@
     private string _badEmail { get; set; } = string.Empty;
     private string _badEmailMessage { get; set; } = string.Empty;
     private bool _isBadEmail = false;
-    private bool IsChatConnected => ChatHubConnection?.State == HubConnectionState.Connected;
 
     protected override async Task OnInitializedAsync()
     {
@@ -73,8 +72,6 @@
         {
             ChatHubConnection.On<ChatDto>("ChatCreated", async (chatDto) =>
             {
-                // Chat was created successfully
-                Console.WriteLine("Chat created FRONT END");
                 ResetForm();
                 await InvokeAsync(StateHasChanged);
             });
@@ -107,7 +104,6 @@
             return;
         }
 
-        // Create chat DTO
         ChatDto chatDto = new()
         {
             ChatName = _chatName,
@@ -115,7 +111,6 @@
             InvitedEmails = new List<string>(_emails)
         };
 
-        // Create invitation DTOs
         List<ChatInvitationDto> invitations = new();
         ChatUser[]? invitedUsers = ChatUserService.GetUserByEmail(_emails.ToArray());
 
@@ -134,8 +129,7 @@
             }
         }
 
-        // Send to hub
-        if (ChatHubConnection != null && IsChatConnected)
+        if (ChatHubConnection is not null)
         {
             try
             {

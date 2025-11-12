@@ -110,8 +110,6 @@ public class ChatService
                 .AsNoTracking()
                 .ToArray();
 
-            Console.WriteLine(chats[0].Invitations[0].SenderId);
-
             return chats.Select(c => new ChatDto()
             {
                 Id = c.Id,
