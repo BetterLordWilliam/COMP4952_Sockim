@@ -119,7 +119,7 @@ else
                 .WithAutomaticReconnect()
                 .Build();
 
-            _invitationHubConnection.On<ChatDto>("InvitationAccpeted", (ChatDto newChat) => {
+            _invitationHubConnection.On<ChatDto>("InvitationAccepted", (ChatDto newChat) => {
                 _chats.Add(newChat);
                 InvokeAsync(StateHasChanged);
             });

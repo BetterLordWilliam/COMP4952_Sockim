@@ -27,13 +27,16 @@ public class InvitationsService
                 .Include(c => c.ChatOwner)
                 .Include(c => c.ChatUsers)
                 .Where(c => c.Id == invitationDto.ChatId)
-                .AsNoTracking()
                 .FirstOrDefaultAsync())!;
             ChatUser invitee = (await _chatDbContext.Users
                 .Where(u => u.Id == invitationDto.ReceiverId)
                 .FirstOrDefaultAsync())!;
 
+            _logger.LogInformation($"user {invitee.Id}");
+
             chat.ChatUsers.Add(invitee);
+
+            await _chatDbContext.SaveChangesAsync();
 
             await _chatDbContext.Invitations
                 .Where(i => i.ChatId == invitationDto.ChatId
