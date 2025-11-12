@@ -1,6 +1,7 @@
 using System;
 using System.Linq.Expressions;
 using COMP4952_Sockim.Data;
+using COMP4952_Sockim.Models;
 using Microsoft.DotNet.Scaffolding.Shared.Messaging;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,46 +19,85 @@ public class MessagesService
     }
 
     /// <summary>
-    /// Adds a new chat message to the database.
+    /// Adds a new chat message to the database from a DTO.
     /// </summary>
-    /// <param name="chat"></param>
-    /// <param name="message"></param>
-    /// <returns></returns>
-    public async Task AddChatMessage(Chat chat, ChatMessage message)
+    public async Task<ChatMessageDto> AddChatMessage(ChatMessageDto messageDto)
     {
         try
         {
-            chat.Messages.Add(message);
+            ChatMessage message = new()
+            {
+                ChatId = messageDto.ChatId,
+                ChatUserId = messageDto.ChatUserId,
+                MessageContent = messageDto.MessageContent,
+                MessageDateTime = DateTime.UtcNow
+            };
+
+            _chatDbContext.Messages.Add(message);
             await _chatDbContext.SaveChangesAsync();
+
+            _logger.LogInformation($"Message added with ID {message.Id}");
+
+            return new ChatMessageDto
+            {
+                Id = message.Id,
+                ChatId = message.ChatId,
+                ChatUserId = message.ChatUserId,
+                SenderEmail = messageDto.SenderEmail,
+                MessageDateTime = message.MessageDateTime,
+                MessageContent = message.MessageContent
+            };
         }
         catch (OperationCanceledException ex)
         {
-            _logger.LogError($"error while adding message {ex.Message}");
+            _logger.LogError($"Error while adding message: {ex.Message}");
+            throw;
         }
     }
 
     /// <summary>
-    /// Retrieves the chat messages for a specific chat.
+    /// Retrieves the chat messages for a specific chat as DTOs.
     /// </summary>
-    /// <param name="chat"></param>
-    /// <returns></returns>
-    public ChatMessage[] GetChatMessages(Chat chat)
+    public ChatMessageDto[] GetChatMessages(int chatId)
     {
         try
         {
             ChatMessage[] messages = _chatDbContext.Messages
-                .Where(m => m.Chat == chat)
+                .Where(m => m.ChatId == chatId)
                 .OrderBy(m => m.MessageDateTime)
                 .AsNoTracking()
                 .ToArray();
 
-            return messages;
+            return messages.Select(m => new ChatMessageDto
+            {
+                Id = m.Id,
+                ChatId = m.ChatId,
+                ChatUserId = m.ChatUserId,
+                SenderEmail = m.ChatUser?.Email ?? string.Empty,
+                MessageDateTime = m.MessageDateTime,
+                MessageContent = m.MessageContent
+            }).ToArray();
         }
         catch (OperationCanceledException ex)
         {
-            _logger.LogError($"failed getting messages for chat: {ex.Message}");
-
-            return Array.Empty<ChatMessage>();
+            _logger.LogError($"Failed getting messages for chat: {ex.Message}");
+            return Array.Empty<ChatMessageDto>();
         }
+    }
+
+    /// <summary>
+    /// Converts a ChatMessage entity to ChatMessageDto.
+    /// </summary>
+    public ChatMessageDto ConvertToDto(ChatMessage message)
+    {
+        return new ChatMessageDto
+        {
+            Id = message.Id,
+            ChatId = message.ChatId,
+            ChatUserId = message.ChatUserId,
+            SenderEmail = message.ChatUser?.Email ?? string.Empty,
+            MessageDateTime = message.MessageDateTime,
+            MessageContent = message.MessageContent
+        };
     }
 }

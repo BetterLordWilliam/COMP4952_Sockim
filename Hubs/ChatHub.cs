@@ -26,32 +26,40 @@ public class ChatHub : Hub
         _invitationService = invitationService;
     }
 
-    public async Task AddChat(ChatDto chat, List<ChatInvidationDto> invitations)
+    /// <summary>
+    /// Creates a new chat and sends invitations to specified users.
+    /// Broadcasts the new chat to all connected clients.
+    /// </summary>
+    public async Task AddChat(ChatDto chatDto, List<ChatInvitationDto> invitations)
     {
-        _logger.LogInformation("Adding new chat");
-
-        ChatUser owner = _chatUserService.GetUser()!;
-        Chat newChat = new()
+        try
         {
-            ChatName = chat.ChatName,
-            ChatOwnerId = chat.ChatOwnerId
-        };
-        newChat.ChatUsers.Add(owner);
+            _logger.LogInformation($"Adding new chat: {chatDto.ChatName}");
 
-        await _chatService.AddChat(newChat);
+            // Create the chat
+            ChatDto createdChat = await _chatService.AddChatWithInvitations(chatDto);
 
-        List<ChatInvitation> newInvitations = [];
-        foreach (ChatInvidationDto invitation in invitations)
-        {
-            ChatInvitation i = new()
+            // Add the invitations
+            if (invitations != null && invitations.Count > 0)
             {
-                ChatId = newChat.Id,
-                SenderId = invitation.SenderId,
-                ReceiverId = invitation.RecieverId
-            };
-            newInvitations.Add(i);
-        }
+                // Update invitation DTOs with the new chat ID
+                foreach (var invitation in invitations)
+                {
+                    invitation.ChatId = createdChat.Id;
+                }
 
-        await _invitationService.Add
+                await _invitationService.AddInvitations(invitations.ToArray());
+                _logger.LogInformation($"Added {invitations.Count} invitations for chat {createdChat.Id}");
+            }
+
+            // Broadcast the new chat to all clients
+            await Clients.All.SendAsync("ChatCreated", createdChat);
+            _logger.LogInformation($"Chat '{createdChat.ChatName}' created successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error adding chat: {ex.Message}");
+            await Clients.Caller.SendAsync("Error", new { message = "Failed to create chat", error = ex.Message });
+        }
     }
 }

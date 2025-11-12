@@ -1,19 +1,21 @@
 ﻿@using COMP4952_Sockim.Data
 @using COMP4952_Sockim.Components.Chat
 @using COMP4952_Sockim.Services
+@using COMP4952_Sockim.Models
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.IdentityModel.Tokens
 @using System.Security.Claims
 
 @rendermode InteractiveServer
+@implements IAsyncDisposable
 @inject UserManager<ChatUser> UserManager
 @inject AuthenticationStateProvider ASP
-@inject ChatService ChatService
 @inject ChatUserService ChatUserService
-@inject InvitationsService InvitationsService
+@inject NavigationManager NavManager
+@inject IJSRuntime JSRuntime
 
 <h3>ChatCreateForm</h3>
-
 
 <form @onsubmit="OnChatCreateSubmit">
     <label>
@@ -47,7 +49,7 @@
                 @onkeydown="AddEmail" />
     </label>
     <br />
-    <button type="submit">
+    <button type="submit" disabled="@(!IsConnected)">
         Submit
     </button>
 </form>
@@ -56,18 +58,20 @@
     [Parameter]
     public EventCallback OnFormSubmit { get; set; }
 
-    private ChatUser _user;
-    private AuthenticationState _authState;
-    private ClaimsPrincipal _claimsPrincipal;
+    private ChatUser? _user;
+    private AuthenticationState? _authState;
+    private ClaimsPrincipal? _claimsPrincipal;
+    private HubConnection? _hubConnection;
 
     private string _chatName { get; set; } = string.Empty;
     private List<string> _emails { get; set; } = new ();
     private string _newEmail { get; set; } = string.Empty;
-    private int _lastEmail { get; set; } = -1;
 
     private string _badEmail { get; set; } = string.Empty;
     private string _badEmailMessage { get; set; } = string.Empty;
     private bool _isBadEmail = false;
+
+    public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
     protected override async Task OnInitializedAsync()
     {
@@ -77,34 +81,97 @@
         {
             _user = (await UserManager.GetUserAsync(_claimsPrincipal))!;
         }
+
+        // Initialize SignalR connection
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavManager.ToAbsoluteUri("/chathub"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hubConnection.On<ChatDto>("ChatCreated", async (chatDto) =>
+        {
+            // Chat was created successfully
+            if (OnFormSubmit.HasDelegate)
+            {
+                await OnFormSubmit.InvokeAsync();
+            }
+            ResetForm();
+            await InvokeAsync(StateHasChanged);
+        });
+
+        _hubConnection.On<object>("Error", async (error) =>
+        {
+            // Handle error
+            Console.WriteLine($"Error from server: {error}");
+            await InvokeAsync(StateHasChanged);
+        });
+
+        try
+        {
+            await _hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error connecting to hub: {ex.Message}");
+        }
     }
 
-    private async void OnChatCreateSubmit() {
-        // Create a new chat entity
-        Chat newChat        = new ();
-        newChat.ChatName    = _chatName;
-        newChat.ChatOwner   = _user;
-        newChat.ChatUsers.Add(_user);
-
-        await ChatService.AddChat(newChat);
-
-        // Get the users corresponding to the _emails that were given
-        ChatUser[]? invitedUsers = ChatUserService.GetUserByEmail(_emails.ToArray());
-        List<ChatInvitation> invitations = [];
-        foreach (ChatUser invitedUser in invitedUsers!)
+    private async Task OnChatCreateSubmit() 
+    {
+        if (string.IsNullOrWhiteSpace(_chatName))
         {
-            ChatInvitation invitation = new ();
-            invitation.Sender = _user;
-            invitation.Receiver = invitedUser;
-            invitation.Chat = newChat;
-            invitations.Add(invitation);
+            _badEmailMessage = "Chat name is required";
+            _isBadEmail = true;
+            return;
         }
 
-        await InvitationsService.AddInvitation(invitations.ToArray());
-
-        if (OnFormSubmit.HasDelegate)
+        if (_user == null)
         {
-            await OnFormSubmit.InvokeAsync();
+            _badEmailMessage = "User not authenticated";
+            _isBadEmail = true;
+            return;
+        }
+
+        // Create chat DTO
+        ChatDto chatDto = new()
+        {
+            ChatName = _chatName,
+            ChatOwnerId = _user.Id,
+            InvitedEmails = new List<string>(_emails)
+        };
+
+        // Create invitation DTOs
+        List<ChatInvitationDto> invitations = new();
+        ChatUser[]? invitedUsers = ChatUserService.GetUserByEmail(_emails.ToArray());
+
+        if (invitedUsers != null)
+        {
+            foreach (ChatUser invitedUser in invitedUsers)
+            {
+                invitations.Add(new ChatInvitationDto
+                {
+                    SenderId = _user.Id,
+                    SenderEmail = _user.Email ?? string.Empty,
+                    ReceiverId = invitedUser.Id,
+                    ReceiverEmail = invitedUser.Email ?? string.Empty,
+                    Accepted = false
+                });
+            }
+        }
+
+        // Send to hub
+        if (_hubConnection != null && IsConnected)
+        {
+            try
+            {
+                await _hubConnection.SendAsync("AddChat", chatDto, invitations);
+            }
+            catch (Exception ex)
+            {
+                _badEmailMessage = "Error creating chat";
+                _isBadEmail = true;
+                Console.WriteLine($"Error sending to hub: {ex.Message}");
+            }
         }
     }
 
@@ -114,7 +181,7 @@
 
         if(checkKey && !_newEmail.IsNullOrEmpty() && !_emails.Contains(_newEmail))
         {
-            if (_newEmail == _user.Email)
+            if (_newEmail == _user?.Email)
             {
                 _badEmail = _newEmail;
                 _isBadEmail = true;
@@ -135,7 +202,6 @@
             }
 
             _emails.Add(_newEmail);
-            _lastEmail = _emails.Count() - 1;
             _newEmail = string.Empty;
             _isBadEmail = false;
 
@@ -146,16 +212,11 @@
 
         @* Console.WriteLine(_newEmail); *@
 
-        if (delete && !_isBadEmail && _newEmail.Last() == ' ' && _emails.Count() > 0)
+        if (delete && !_isBadEmail && _newEmail.Length > 0 && _newEmail[^1] == ' ' && _emails.Count() > 0)
         {
-            try
-            {
-                _emails.RemoveAt(_lastEmail);
-                _lastEmail -= 1;
-            } catch (ArgumentOutOfRangeException err)
-            {
-                Console.WriteLine($"Nothing to remove {err.Message}");
-            }
+            RemoveEmail(_emails[_emails.Count() - 1]);
+            _newEmail = string.Empty;
+            _isBadEmail = false;
             return;
         }
     }
@@ -165,6 +226,24 @@
         if (_emails.Contains(email))
         {
             _emails.Remove(email);
+        }
+    }
+
+    private void ResetForm()
+    {
+        _chatName = string.Empty;
+        _emails.Clear();
+        _newEmail = string.Empty;
+        _isBadEmail = false;
+        _badEmail = string.Empty;
+        _badEmailMessage = string.Empty;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.DisposeAsync();
         }
     }
 }

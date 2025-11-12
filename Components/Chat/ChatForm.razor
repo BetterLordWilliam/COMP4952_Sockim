@@ -5,6 +5,7 @@
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.Build.Framework
 @using COMP4952_Sockim.Data
+@using COMP4952_Sockim.Models
 @using Microsoft.DotNet.Scaffolding.Shared.Messaging
 @using System.Security.Claims
 
@@ -14,25 +15,25 @@
 @inject UserManager<ChatUser> UserManager
 @inject NavigationManager NavManager
 @inject AuthenticationStateProvider ASP
-@inject ChatService ChatService
-@inject ChatUserService ChatUserService
 @inject MessagesService MessagesService
 
 <div class="chat-container">
     <h1>Connected: @IsConnected</h1>
     <div class="message-list-wrapper" @ref="_messageListWrapper">
         <ul class="message-list">
-            @foreach (ChatMessage message in _messages)
+            @foreach (ChatMessageDto message in _messages)
             {
-                <ChatMessageItem Message="@message" />
+                <li>
+                    <span><b>@message.SenderEmail</b></span>
+                    <p>@message.MessageContent</p>
+                    <span><b>@message.MessageDateTime</b></span>
+                    <br />
+                </li>
             }
         </ul>
     </div>
     <div class="input-controls">
         <div class="form-group">
-            @* <label>
-                User: <input @bind="_user" />
-            </label> *@
             <br />
             <label>
                 Message: <input @bind="_message" />
@@ -48,39 +49,39 @@
 
     private ElementReference _messageListWrapper;
     private HubConnection? _hubConnection;
-    private List<ChatMessage> _messages = Array.Empty<ChatMessage>().ToList();
-    private string _message = null!;
+    private List<ChatMessageDto> _messages = [];
+    private string _message = string.Empty;
     public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
-    private AuthenticationState _authState = null!;
-    private ClaimsPrincipal _userClaim = null!;
-    private ChatUser _user = null!;
+    private AuthenticationState? _authState;
+    private ClaimsPrincipal? _userClaim;
+    private ChatUser? _user;
 
     protected override async Task OnInitializedAsync()
     {
         _authState = await ASP.GetAuthenticationStateAsync();
         _userClaim = _authState.User;
-        _user = (await UserManager.GetUserAsync(_userClaim))!;
+        if (_userClaim?.Identity?.IsAuthenticated == true)
+        {
+            _user = (await UserManager.GetUserAsync(_userClaim))!;
+        }
 
-        if (_userClaim.Identity!.IsAuthenticated)
+        if (_userClaim?.Identity?.IsAuthenticated == true)
         {
             _hubConnection = new HubConnectionBuilder()
                 .WithUrl(NavManager.ToAbsoluteUri("/chathub"))
                 .WithAutomaticReconnect()
                 .Build();
 
-            _hubConnection.On<object[]>("ReceiveMessage", (args) =>
+            _hubConnection.On<ChatMessageDto>("ReceiveMessage", async (messageDto) =>
             {
-                Console.WriteLine(args[0]);
-                _messages.Add((ChatMessage)args[0]);
-                // string formatMessage = $"{user}: {message}";
-                // _messages.Add(formatMessage);
-                StateHasChanged();
-                InvokeAsync(ScrollToBottom);
+                _messages.Add(messageDto);
+                await ScrollToBottom();
+                await InvokeAsync(StateHasChanged);
             });
 
             await _hubConnection.StartAsync();
 
-            _messages = MessagesService!.GetChatMessages(Chat).ToList();
+            _messages = MessagesService.GetChatMessages(Chat.Id).ToList();
         }
     }
 
@@ -94,21 +95,33 @@
 
     private async Task Send()
     {
-        ChatMessage newMessage = new ChatMessage();
-        newMessage.Chat = Chat;
-        newMessage.ChatUser = _user;
-        newMessage.MessageContent = _message;
-        newMessage.MessageDateTime = new DateTime();
+        if (string.IsNullOrWhiteSpace(_message) || _user == null)
+            return;
 
-        Console.WriteLine(newMessage);
-        Console.WriteLine(Chat);
-
-        await MessagesService.AddChatMessage(Chat, newMessage);
-
-        if (_hubConnection is not null)
+        ChatMessageDto newMessage = new()
         {
-            await _hubConnection.SendAsync("SendMessage", Chat, newMessage);
-            await ScrollToBottom();
+            ChatId = Chat.Id,
+            ChatUserId = _user.Id,
+            SenderEmail = _user.Email ?? string.Empty,
+            MessageContent = _message,
+            MessageDateTime = DateTime.UtcNow
+        };
+
+        try
+        {
+            await MessagesService.AddChatMessage(newMessage);
+
+            if (_hubConnection is not null)
+            {
+                await _hubConnection.SendAsync("SendMessage", Chat.Id, newMessage);
+                await ScrollToBottom();
+            }
+
+            _message = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error sending message: {ex.Message}");
         }
     }
 
