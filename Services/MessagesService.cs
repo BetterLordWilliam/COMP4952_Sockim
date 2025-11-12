@@ -1,16 +1,14 @@
 using System;
-using System.Linq.Expressions;
 using COMP4952_Sockim.Data;
 using COMP4952_Sockim.Models;
-using Microsoft.DotNet.Scaffolding.Shared.Messaging;
 using Microsoft.EntityFrameworkCore;
 
 namespace COMP4952_Sockim.Services;
 
 public class MessagesService
 {
-    private ILogger<MessagesService> _logger;
-    private ChatDbContext _chatDbContext;
+    private readonly ILogger<MessagesService> _logger;
+    private readonly ChatDbContext _chatDbContext;
 
     public MessagesService(ILogger<MessagesService> logger, ChatDbContext chatDbContext)
     {
@@ -20,6 +18,7 @@ public class MessagesService
 
     /// <summary>
     /// Adds a new chat message to the database from a DTO.
+    /// Sets MessageDateTime to current UTC time.
     /// </summary>
     public async Task<ChatMessageDto> AddChatMessage(ChatMessageDto messageDto)
     {
@@ -36,7 +35,7 @@ public class MessagesService
             _chatDbContext.Messages.Add(message);
             await _chatDbContext.SaveChangesAsync();
 
-            _logger.LogInformation($"Message added with ID {message.Id}");
+            _logger.LogInformation($"Message {message.Id} added to chat {message.ChatId}");
 
             return new ChatMessageDto
             {
@@ -48,7 +47,12 @@ public class MessagesService
                 MessageContent = message.MessageContent
             };
         }
-        catch (OperationCanceledException ex)
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError($"Database error while adding message: {ex.Message}");
+            throw;
+        }
+        catch (Exception ex)
         {
             _logger.LogError($"Error while adding message: {ex.Message}");
             throw;
@@ -56,18 +60,19 @@ public class MessagesService
     }
 
     /// <summary>
-    /// Retrieves the chat messages for a specific chat as DTOs.
+    /// Retrieves chat messages for a specific chat (non-tracking).
+    /// Returns messages ordered by datetime (ascending).
     /// </summary>
-    public ChatMessageDto[] GetChatMessages(int chatId)
+    public async Task<ChatMessageDto[]> GetChatMessages(int chatId)
     {
         try
         {
-            ChatMessage[] messages = _chatDbContext.Messages
+            ChatMessage[] messages = await _chatDbContext.Messages
                 .Include(m => m.ChatUser)
                 .Where(m => m.ChatId == chatId)
                 .OrderBy(m => m.MessageDateTime)
                 .AsNoTracking()
-                .ToArray();
+                .ToArrayAsync();
 
             return messages.Select(m => new ChatMessageDto
             {
@@ -81,7 +86,12 @@ public class MessagesService
         }
         catch (OperationCanceledException ex)
         {
-            _logger.LogError($"Failed getting messages for chat: {ex.Message}");
+            _logger.LogError($"Operation cancelled while retrieving messages for chat {chatId}: {ex.Message}");
+            return Array.Empty<ChatMessageDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error retrieving messages for chat {chatId}: {ex.Message}");
             return Array.Empty<ChatMessageDto>();
         }
     }

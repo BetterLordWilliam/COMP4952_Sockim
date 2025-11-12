@@ -99,8 +99,8 @@ public class MessageHub : Hub
     }
 
     /// <summary>
-    /// Get chat history (previous messages)
-    /// Should be called when user first loads a chat
+    /// Get chat history (previous messages).
+    /// Sends chat history only to the caller when they load the chat.
     /// </summary>
     public async Task GetChatHistory(int chatId)
     {
@@ -108,7 +108,7 @@ public class MessageHub : Hub
         {
             _logger.LogInformation($"Retrieving chat history for chat {chatId}");
 
-            ChatMessageDto[] messages = _messagesService.GetChatMessages(chatId);
+            ChatMessageDto[] messages = await _messagesService.GetChatMessages(chatId);
 
             // Send history only to the caller
             await Clients.Caller.SendAsync("RetrievedMessages", messages);
@@ -118,12 +118,12 @@ public class MessageHub : Hub
         catch (Exception ex)
         {
             _logger.LogError($"Error getting chat history: {ex.Message}");
-            await Clients.Caller.SendAsync("Error", new { message = "Failed to get chat history", error = ex.Message });
+            await Clients.Caller.SendAsync("Error", new { message = "Failed to load chat history", error = ex.Message });
         }
     }
 
     /// <summary>
-    /// Optional: Broadcasting when user is typing
+    /// Broadcasting when user is typing.
     /// </summary>
     public async Task UserTyping(int chatId, int userId, string senderEmail)
     {
@@ -146,7 +146,7 @@ public class MessageHub : Hub
     }
 
     /// <summary>
-    /// Optional: Broadcasting when user stops typing
+    /// Broadcasting when user stops typing.
     /// </summary>
     public async Task UserStoppedTyping(int chatId, int userId)
     {

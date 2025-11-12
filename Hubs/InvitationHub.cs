@@ -1,4 +1,5 @@
 using System;
+using COMP4952_Sockim.Data;
 using COMP4952_Sockim.Models;
 using COMP4952_Sockim.Services;
 using Microsoft.AspNetCore.SignalR;
@@ -7,31 +8,43 @@ namespace COMP4952_Sockim.Hubs;
 
 public class InvitationHub : Hub
 {
-    ILogger<InvitationHub> _logger;
-    InvitationsService _invitationsService;
+    private readonly ILogger<InvitationHub> _logger;
+    private readonly InvitationsService _invitationsService;
+    private readonly ChatService _chatService;
 
     public InvitationHub(
         ILogger<InvitationHub> logger,
-        InvitationsService invitationsService)
+        InvitationsService invitationsService,
+        ChatService chatService)
     {
         _logger = logger;
         _invitationsService = invitationsService;
+        _chatService = chatService;
     }
 
+    /// <summary>
+    /// Adds a user to the invitation notification group.
+    /// </summary>
     public async Task AddInvitationUser(int userId)
     {
         string userGroup = $"user-{userId}";
         await Groups.AddToGroupAsync(Context.ConnectionId, userGroup);
+        _logger.LogInformation($"User {userId} added to invitation group");
     }
 
+    /// <summary>
+    /// Removes a user from the invitation notification group.
+    /// </summary>
     public async Task RemoveInvitationUser(int userId)
     {
         string userGroup = $"user-{userId}";
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, userGroup);
+        _logger.LogInformation($"User {userId} removed from invitation group");
     }
 
     /// <summary>
-    /// User accepts an invitation to a chat
+    /// User accepts an invitation to a chat.
+    /// Orchestrates: Add user to chat → Delete invitation → Get updated chat → Broadcast
     /// </summary>
     public async Task AcceptInvitation(ChatInvitationDto invitationDto)
     {
@@ -39,59 +52,78 @@ public class InvitationHub : Hub
         {
             _logger.LogInformation($"User {invitationDto.ReceiverId} accepting invitation from {invitationDto.SenderId} for chat {invitationDto.ChatId}");
 
-            // TODO: Implement:
-            // 1. Update invitation in database (Accepted = true)
-            // 2. Add receiver to chat
-            // 3. Broadcast update to all clients
-
-            invitationDto.Accepted = true;
-            ChatDto? newChat = await _invitationsService.AcceptInvitation(invitationDto);
-
-            if (newChat is not null)
+            // 1. Add receiver to chat (CRUD)
+            bool userAdded = await _invitationsService.AddUserToChat(invitationDto.ChatId, invitationDto.ReceiverId);
+            if (!userAdded)
             {
-                _logger.LogInformation($"invitation accepted");
-                await Clients.Group($"user-{invitationDto.ReceiverId}").SendAsync("InvitationAccepted", newChat);
-            }
-            else
-            {
-                _logger.LogError("error accepting invitation");
+                _logger.LogError($"Failed to add user {invitationDto.ReceiverId} to chat {invitationDto.ChatId}");
                 await Clients.Caller.SendAsync("Error", new { message = "Failed to accept invitation" });
+                return;
             }
+
+            // 2. Delete the invitation (CRUD)
+            bool invitationDeleted = await _invitationsService.DeleteInvitation(
+                invitationDto.SenderId,
+                invitationDto.ReceiverId,
+                invitationDto.ChatId);
+
+            if (!invitationDeleted)
+            {
+                _logger.LogWarning($"Failed to delete invitation for user {invitationDto.ReceiverId}");
+            }
+
+            // 3. Get updated chat with all users
+            Chat? chat = await _chatService.GetChatById(invitationDto.ChatId);
+            if (chat == null)
+            {
+                _logger.LogError($"Chat {invitationDto.ChatId} not found after accepting invitation");
+                await Clients.Caller.SendAsync("Error", new { message = "Chat not found" });
+                return;
+            }
+
+            ChatDto updatedChat = _chatService.ConvertToDto(chat);
+
+            // 4. Notify the accepting user
+            await Clients.Group($"user-{invitationDto.ReceiverId}")
+                .SendAsync("InvitationAccepted", updatedChat);
+
+            // 5. Notify chat members that new user joined
+            await Clients.Group($"chat-{invitationDto.ChatId}")
+                .SendAsync("MemberJoined", new { ChatId = invitationDto.ChatId, UserId = invitationDto.ReceiverId, UserEmail = invitationDto.ReceiverEmail });
+
+            _logger.LogInformation($"User {invitationDto.ReceiverId} successfully accepted invitation for chat {invitationDto.ChatId}");
         }
         catch (Exception ex)
         {
             _logger.LogError($"Error accepting invitation: {ex.Message}");
+            await Clients.Caller.SendAsync("Error", new { message = "Failed to accept invitation", error = ex.Message });
         }
     }
 
     /// <summary>
-    /// User rejects an invitation to a chat
+    /// User rejects an invitation to a chat.
+    /// Orchestrates: Delete invitation → Notify
     /// </summary>
-    public async Task RejectInvitation(int invitationSenderId, int chatId, int receiverId)
+    public async Task RejectInvitation(int senderId, int receiverId, int chatId)
     {
         try
         {
-            _logger.LogInformation($"User {receiverId} rejecting invitation from {invitationSenderId} for chat {chatId}");
+            _logger.LogInformation($"User {receiverId} rejecting invitation from {senderId} for chat {chatId}");
 
-            // TODO: Implement:
-            // 1. Delete invitation from database
-            // 2. Notify relevant clients
+            // Delete the invitation (CRUD)
+            bool deleted = await _invitationsService.DeleteInvitation(senderId, receiverId, chatId);
 
-            /*
-            ChatInvitation? invitation = _chatDbContext.Invitations
-                .FirstOrDefault(i => i.SenderId == invitationSenderId && 
-                                     i.ReceiverId == receiverId && 
-                                     i.ChatId == chatId);
-            
-            if (invitation != null)
+            if (deleted)
             {
-                _chatDbContext.Invitations.Remove(invitation);
-                await _chatDbContext.SaveChangesAsync();
-                
-                // Notify relevant clients
-                await Clients.All.SendAsync("InvitationRejected", new { ChatId = chatId, UserId = receiverId });
+                // Notify the user
+                await Clients.Group($"user-{receiverId}").SendAsync("InvitationRejected", new { ChatId = chatId });
+                _logger.LogInformation($"Invitation rejected successfully for user {receiverId}");
             }
-            */
+            else
+            {
+                _logger.LogWarning($"Failed to delete invitation for rejection: {senderId}, {receiverId}, {chatId}");
+                await Clients.Caller.SendAsync("Error", new { message = "Failed to reject invitation" });
+            }
         }
         catch (Exception ex)
         {
@@ -100,53 +132,87 @@ public class InvitationHub : Hub
         }
     }
 
-    public async Task SendInvitation(ChatInvitationDto chatInvitationDto)
+    /// <summary>
+    /// Send an invitation to a single user.
+    /// </summary>
+    public async Task SendInvitation(ChatInvitationDto invitationDto)
     {
         try
         {
-            await _invitationsService.AddInvitation(chatInvitationDto);
-            await Clients.User($"{chatInvitationDto.ReceiverId}").SendAsync("IncomingInvitation", chatInvitationDto);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError($"error sending invitation {ex.Message}");
-        }
-    }
+            _logger.LogInformation($"Sending invitation from {invitationDto.SenderId} to {invitationDto.ReceiverId} for chat {invitationDto.ChatId}");
 
-    public async Task SendInvitations(ChatInvitationDto[] chatInvitationDtos)
-    {
-        try
-        {
-            foreach(ChatInvitationDto chatInvitationDto in chatInvitationDtos)
+            bool added = await _invitationsService.AddInvitation(invitationDto);
+            if (added)
             {
-                await _invitationsService.AddInvitation(chatInvitationDto);
-                await Clients.User($"{chatInvitationDto.ReceiverId}").SendAsync("IncomingInvitation", chatInvitationDto);
+                // Notify the recipient
+                await Clients.Group($"user-{invitationDto.ReceiverId}").SendAsync("IncomingInvitation", invitationDto);
+                _logger.LogInformation($"Invitation sent to user {invitationDto.ReceiverId}");
+            }
+            else
+            {
+                _logger.LogError($"Failed to send invitation to user {invitationDto.ReceiverId}");
+                await Clients.Caller.SendAsync("Error", new { message = "Failed to send invitation" });
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError($"error sending invitations {ex.Message}");
+            _logger.LogError($"Error sending invitation: {ex.Message}");
+            await Clients.Caller.SendAsync("Error", new { message = "Failed to send invitation", error = ex.Message });
         }
     }
 
     /// <summary>
-    /// Get all pending invitations for a user
+    /// Send invitations to multiple users.
+    /// </summary>
+    public async Task SendInvitations(ChatInvitationDto[] invitationDtos)
+    {
+        try
+        {
+            _logger.LogInformation($"Sending {invitationDtos.Length} invitations");
+
+            bool allAdded = await _invitationsService.AddInvitations(invitationDtos);
+            if (allAdded)
+            {
+                foreach (var invitation in invitationDtos)
+                {
+                    // Notify each recipient
+                    await Clients.Group($"user-{invitation.ReceiverId}")
+                        .SendAsync("IncomingInvitation", invitation);
+                }
+
+                _logger.LogInformation($"All {invitationDtos.Length} invitations sent successfully");
+            }
+            else
+            {
+                _logger.LogError("Failed to send all invitations");
+                await Clients.Caller.SendAsync("Error", new { message = "Failed to send some invitations" });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error sending invitations: {ex.Message}");
+            await Clients.Caller.SendAsync("Error", new { message = "Failed to send invitations", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get all pending invitations for a user.
+    /// Called when user first connects or refreshes.
     /// </summary>
     public async Task RetrieveInvitations(int userId)
     {
         try
         {
-            // TODO: Implement:
-            // 1. Query pending invitations for user
-            // 2. Convert to DTOs
-            // 3. Send back to caller
+            _logger.LogInformation($"Retrieving pending invitations for user {userId}");
 
-            ChatInvitationDto[] pendingInvitations = await _invitationsService.GetUserInvitation(userId);
+            ChatInvitationDto[] pendingInvitations = await _invitationsService.GetUserInvitations(userId);
             await Clients.Caller.SendAsync("RetrievedInvitations", pendingInvitations);
+
+            _logger.LogInformation($"Sent {pendingInvitations.Length} pending invitations to user {userId}");
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Error getting pending invitations: {ex.Message}");
+            _logger.LogError($"Error retrieving invitations: {ex.Message}");
             await Clients.Caller.SendAsync("Error", new { message = "Failed to get invitations", error = ex.Message });
         }
     }

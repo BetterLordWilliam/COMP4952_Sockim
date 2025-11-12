@@ -42,7 +42,7 @@ public class ChatHub : Hub
 
     /// <summary>
     /// Creates a new chat and sends invitations to specified users.
-    /// Broadcasts the new chat to all connected clients.
+    /// Orchestrates: Chat creation → Invitation creation → Broadcasting
     /// </summary>
     public async Task AddChat(ChatDto chatDto, List<ChatInvitationDto> invitations)
     {
@@ -50,25 +50,42 @@ public class ChatHub : Hub
         {
             _logger.LogInformation($"Adding new chat: {chatDto.ChatName}");
 
-            // Create the chat
-            ChatDto createdChat = await _chatService.AddChatWithInvitations(chatDto);
+            // 1. Create the chat (pure CRUD)
+            ChatDto? createdChat = await _chatService.CreateChat(chatDto);
+            if (createdChat == null)
+            {
+                _logger.LogError("Failed to create chat");
+                await Clients.Caller.SendAsync("Error", new { message = "Failed to create chat" });
+                return;
+            }
 
-            // Add the invitations
+            // 2. Add invitations (pure CRUD)
             if (invitations != null && invitations.Count > 0)
             {
-                // Update invitation DTOs with the new chat ID
                 foreach (var invitation in invitations)
                 {
                     invitation.ChatId = createdChat.Id;
-                    Console.WriteLine($"Receiver id: {invitation.ReceiverId}");
+                    invitation.SenderId = chatDto.ChatOwnerId;
 
-                    await _invitationService.AddInvitation(invitation);
-                    await Clients.Group($"user-{invitation.ReceiverId}").SendAsync("IncomingInvitation", invitation);
+                    bool added = await _invitationService.AddInvitation(invitation);
+                    if (added)
+                    {
+                        // 3. Notify recipient about invitation
+                        await Clients.Group($"user-{invitation.ReceiverId}")
+                            .SendAsync("IncomingInvitation", invitation);
+                        _logger.LogInformation($"Invitation sent to user {invitation.ReceiverId}");
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"Failed to add invitation for user {invitation.ReceiverId}");
+                    }
                 }
 
                 _logger.LogInformation($"Added {invitations.Count} invitations for chat {createdChat.Id}");
             }
 
+            // 4. Confirm creation to caller
+            await Clients.Caller.SendAsync("ChatCreated", createdChat);
             _logger.LogInformation($"Chat '{createdChat.ChatName}' created successfully");
         }
         catch (Exception ex)
@@ -79,20 +96,18 @@ public class ChatHub : Hub
     }
 
     /// <summary>
-    /// Retrieve chatdtos for specific user.
+    /// Retrieve chats for a specific user.
     /// </summary>
-    /// <param name="userId"></param>
-    /// <returns></returns>
     public async Task RetrieveChats(int userId)
     {
         try
         {
-            ChatDto[] userChats = _chatService.GetChatsForUser(userId);
+            ChatDto[] userChats = await _chatService.GetChatsForUser(userId);
             await Clients.Caller.SendAsync("RetrievedChats", userChats);
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Error retriveing user chats {ex.Message}");
+            _logger.LogError($"Error retrieving user chats: {ex.Message}");
             await Clients.Caller.SendAsync("Error", new { message = "Failed to get user chats" });
         }
     }

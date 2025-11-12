@@ -18,22 +18,22 @@ public class ChatService
     }
 
     /// <summary>
-    /// Creates a new chat with invitations sent to specified email addresses.
-    /// Returns the created chat as a DTO.
+    /// Creates a new chat with the specified owner.
+    /// Adds the owner to ChatUsers automatically.
+    /// Pure CRUD - does not handle invitations.
     /// </summary>
-    public async Task<ChatDto> AddChatWithInvitations(ChatDto chatDto)
+    public async Task<ChatDto?> CreateChat(ChatDto chatDto)
     {
         try
         {
             // Get the owner
-            ChatUser? owner = _chatDbContext.Users
-                .Where(u => u.Id == chatDto.ChatOwnerId)
-                .FirstOrDefault();
+            ChatUser? owner = await _chatDbContext.Users
+                .FirstOrDefaultAsync(u => u.Id == chatDto.ChatOwnerId);
 
             if (owner == null)
             {
                 _logger.LogError($"Owner with ID {chatDto.ChatOwnerId} not found");
-                throw new InvalidOperationException("Chat owner not found");
+                return null;
             }
 
             // Create the chat entity
@@ -60,34 +60,33 @@ public class ChatService
                 ChatName = chat.ChatName,
                 ChatOwnerId = chat.ChatOwnerId,
                 ChatOwnerEmail = owner.Email ?? string.Empty,
-                InvitedEmails = chatDto.InvitedEmails
+                InvitedEmails = new()
             };
         }
         catch (DbUpdateException ex)
         {
             _logger.LogError($"Database error while creating chat: {ex.Message}");
-            throw;
+            return null;
         }
         catch (Exception ex)
         {
             _logger.LogError($"Error while creating chat: {ex.Message}");
-            throw;
+            return null;
         }
     }
 
     /// <summary>
-    /// Gets a chat by its Id.
+    /// Gets a chat by its ID (non-tracking).
     /// </summary>
-    public Chat? GetChatById(int id)
+    public async Task<Chat?> GetChatById(int id)
     {
         try
         {
-            var chat = _chatDbContext.Chats
-                .Where(c => c.Id == id)
+            return await _chatDbContext.Chats
+                .Include(c => c.ChatOwner)
+                .Include(c => c.ChatUsers)
                 .AsNoTracking()
-                .FirstOrDefault();
-
-            return chat;
+                .FirstOrDefaultAsync(c => c.Id == id);
         }
         catch (OperationCanceledException ex)
         {
@@ -97,18 +96,18 @@ public class ChatService
     }
 
     /// <summary>
-    /// Gets all the chats for a specific user.
+    /// Gets all chats for a specific user (non-tracking).
     /// </summary>
-    public ChatDto[] GetChatsForUser(int userId)
+    public async Task<ChatDto[]> GetChatsForUser(int userId)
     {
         try
         {
-            var chats = _chatDbContext.Chats
+            Chat[] chats = await _chatDbContext.Chats
                 .Include(c => c.ChatOwner)
                 .Include(c => c.Invitations)
                 .Where(c => c.ChatUsers.Any(cu => cu.Id == userId))
                 .AsNoTracking()
-                .ToArray();
+                .ToArrayAsync();
 
             return chats.Select(c => new ChatDto()
             {
@@ -116,7 +115,6 @@ public class ChatService
                 ChatName = c.ChatName,
                 ChatOwnerId = c.ChatOwnerId,
                 ChatOwnerEmail = c.ChatOwner.Email ?? string.Empty
-                // InvitedEmails = c.Invitations.Select(i => i.Receiver.Email ?? string.Empty).ToList()
             }).ToArray();
         }
         catch (NullReferenceException ex)
