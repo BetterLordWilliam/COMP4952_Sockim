@@ -80,13 +80,6 @@
     }
 
     private async void OnChatCreateSubmit() {
-        @* Chat chat = new();
-        chat._chatName = _chatName;
-        chat.User_emails = _emails;
-        chat.OwnerEmail = authState.User.Identity.Name; *@
-
-        @* Console.WriteLine(chat); *@
-
         // Create a new chat entity
         Chat newChat        = new ();
         newChat.ChatName    = _chatName;
@@ -109,7 +102,10 @@
 
         await InvitationsService.AddInvitation(invitations.ToArray());
 
-        await OnFormSubmit.InvokeAsync();
+        if (OnFormSubmit.HasDelegate)
+        {
+            await OnFormSubmit.InvokeAsync();
+        }
     }
 
     private void AddEmail(KeyboardEventArgs e)

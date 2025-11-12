@@ -1,0 +1,13 @@
+﻿@using COMP4952_Sockim.Data
+
+<div>
+    <span><b>@Message.ChatUser.Email</b></span>
+    <p>@Message.MessageContent</p>
+    <span><b>@Message.MessageDateTime</b></span>
+    <br />
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public ChatMessage Message { get; set; }
+}

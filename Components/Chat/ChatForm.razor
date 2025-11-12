@@ -1,21 +1,30 @@
-﻿@using Microsoft.AspNetCore.Authorization
+﻿@using COMP4952_Sockim.Services
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.Build.Framework
+@using COMP4952_Sockim.Data
+@using Microsoft.DotNet.Scaffolding.Shared.Messaging
+@using System.Security.Claims
 
 @rendermode InteractiveServer
 @implements IAsyncDisposable
 @inject IJSRuntime JSRuntime
+@inject UserManager<ChatUser> UserManager
 @inject NavigationManager NavManager
+@inject AuthenticationStateProvider ASP
+@inject ChatService ChatService
+@inject ChatUserService ChatUserService
+@inject MessagesService MessagesService
 
 <div class="chat-container">
     <h1>Connected: @IsConnected</h1>
     <div class="message-list-wrapper" @ref="_messageListWrapper">
         <ul class="message-list">
-            @foreach (string message in _messages)
+            @foreach (ChatMessage message in _messages)
             {
-                <li>@message</li>
+                <ChatMessageItem Message="@message" />
             }
         </ul>
     </div>
@@ -34,39 +43,45 @@
 </div>
 
 @code {
+    [Parameter]
+    public Chat Chat { get; set; } = null!;
+
     private ElementReference _messageListWrapper;
     private HubConnection? _hubConnection;
-    private List<string> _messages = new();
-    private string? _user;
-    private string? _message;
+    private List<ChatMessage> _messages = Array.Empty<ChatMessage>().ToList();
+    private string _message = null!;
     public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
-
-    [CascadingParameter]
-    private Task<AuthenticationState> _authenticationStateTask { get; set; }
-    private AuthenticationState _authState;
-
-    public void Test()
-    {
-        Console.WriteLine("This is a test");
-    }
+    private AuthenticationState _authState = null!;
+    private ClaimsPrincipal _userClaim = null!;
+    private ChatUser _user = null!;
 
     protected override async Task OnInitializedAsync()
     {
-        _authState = await _authenticationStateTask;
-        _hubConnection = new HubConnectionBuilder()
-        .WithUrl(NavManager.ToAbsoluteUri("/chathubtest"))
-        .WithAutomaticReconnect()
-        .Build();
+        _authState = await ASP.GetAuthenticationStateAsync();
+        _userClaim = _authState.User;
+        _user = (await UserManager.GetUserAsync(_userClaim))!;
 
-        _hubConnection.On<string, string>("ReceiveMessage", (user, message) =>
+        if (_userClaim.Identity!.IsAuthenticated)
         {
-            string formatMessage = $"{user}: {message}";
-            _messages.Add(formatMessage);
-            InvokeAsync(StateHasChanged);
-            InvokeAsync(ScrollToBottom);
-        });
+            _hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavManager.ToAbsoluteUri("/chathub"))
+                .WithAutomaticReconnect()
+                .Build();
 
-        await _hubConnection.StartAsync();
+            _hubConnection.On<object[]>("ReceiveMessage", (args) =>
+            {
+                Console.WriteLine(args[0]);
+                _messages.Add((ChatMessage)args[0]);
+                // string formatMessage = $"{user}: {message}";
+                // _messages.Add(formatMessage);
+                StateHasChanged();
+                InvokeAsync(ScrollToBottom);
+            });
+
+            await _hubConnection.StartAsync();
+
+            _messages = MessagesService!.GetChatMessages(Chat).ToList();
+        }
     }
 
     private async Task ScrollToBottom()
@@ -79,9 +94,20 @@
 
     private async Task Send()
     {
+        ChatMessage newMessage = new ChatMessage();
+        newMessage.Chat = Chat;
+        newMessage.ChatUser = _user;
+        newMessage.MessageContent = _message;
+        newMessage.MessageDateTime = new DateTime();
+
+        Console.WriteLine(newMessage);
+        Console.WriteLine(Chat);
+
+        await MessagesService.AddChatMessage(Chat, newMessage);
+
         if (_hubConnection is not null)
         {
-            await _hubConnection.SendAsync("SendMessage", _authState.User.Identity?.Name, _message);
+            await _hubConnection.SendAsync("SendMessage", Chat, newMessage);
             await ScrollToBottom();
         }
     }

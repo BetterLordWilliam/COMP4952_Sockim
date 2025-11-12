@@ -24,7 +24,14 @@ builder.Services.AddRazorComponents()
 builder.Services.AddDbContext<ChatDbContext>(options =>
     options.UseMySQL(connectionString));
 
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = true;
+})
+.AddJsonProtocol(options =>
+{
+    options.PayloadSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+});
 
 builder.Services.AddCascadingAuthenticationState();
 
@@ -99,6 +106,7 @@ app.MapRazorComponents<App>()
     });
 
 app.MapHub<TestChatHub>("chathubtest");
+app.MapHub<ChatHub>("chathub");
 
 app.MapAdditionalIdentityEndpoints();;
 

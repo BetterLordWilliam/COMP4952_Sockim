@@ -1,36 +1,80 @@
 ﻿@using COMP4952_Sockim.Services
 @using COMP4952_Sockim.Data
+@using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
 
 @rendermode InteractiveServer
+@inject UserManager<ChatUser> UserManager
 @inject AuthenticationStateProvider ASP
 @inject ChatService ChatService
 
-<h1>Sockim</h1>
+@if(!_chatOpen)
+{
+    <p>Create a new chat</p>
+    <button @onclick="OnAddChat">Add Chat</button>
+    @if(_showCreateChat)
+    {
+        <ChatCreateForm OnFormSubmit="@CloseAddChat"></ChatCreateForm>
+    }
 
-<button @onclick="OnAddChat">Add Chat</button>
-
-@if(_showCreateChat) {
-    <ChatCreateForm OnFormSubmit="@FormSubmit"></ChatCreateForm>
+    <p>Chats</p>
+    @foreach(Chat chat in _chats)
+    {
+        <button type="button" @onclick="() => OpenChat(chat)">@chat.ChatName</button>
+        <br />
+    }
+}
+else
+{
+    <button type="button" @onclick="CloseChat">X</button>
+    <ChatForm Chat=_chat/>
 }
 
 @code {
     private bool _showCreateChat = false;
+    private bool _chatOpen = false;
+    private ElementReference _chatForm;
+    private AuthenticationState _authState = null!;
+    private ClaimsPrincipal _userClaim = null!;
+    private ChatUser _user = null!;
+    private Chat _chat = null!;
     private Chat[] _chats = [];
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
 
-        _chats = await ChatService.GetChats(null);
+        _authState = await ASP.GetAuthenticationStateAsync();
+        _userClaim = _authState.User;
+
+        if (_userClaim.Identity!.IsAuthenticated)
+        {
+            _user = (await UserManager.GetUserAsync(_userClaim))!;
+            _chats = ChatService.GetChatsForUser(_user);
+        }
     }
 
     private void OnAddChat()
     {
         _showCreateChat = true;
+        
     }
 
-    private void FormSubmit()
+    private void CloseAddChat()
     {
         _showCreateChat = false;
+        StateHasChanged();
+    }
+
+    private void OpenChat(Chat chat)
+    {
+        _chat = chat;
+        _chatOpen = true;
+    }
+
+    private void CloseChat()
+    {
+        _chatOpen = false;
+        StateHasChanged();
     }
 }

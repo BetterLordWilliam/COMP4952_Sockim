@@ -1,5 +1,6 @@
 using System;
 using COMP4952_Sockim.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace COMP4952_Sockim.Services;
 
@@ -15,6 +16,29 @@ public class ChatUserService
     }
 
     /// <summary>
+    /// Retrives a user by their id.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
+    public ChatUser? GetUser(int? id = null)
+    {
+        try
+        {
+            ChatUser user = (_chatDbContext.Users
+                .Where(u => u.Id == id)
+                .FirstOrDefault())!;
+
+            return user;
+        }
+        catch (OperationCanceledException ex)
+        {
+            _logger.LogInformation($"operation to get user failed: {ex.Message}");
+
+            return null;
+        }
+    }
+
+    /// <summary>
     /// retrieves a user given a specific email.
     /// </summary>
     /// <param name="email"></param>
@@ -25,6 +49,7 @@ public class ChatUserService
         {
             var user = _chatDbContext.Users
                 .Where(u => u.Email == email)
+                .AsNoTracking()
                 .FirstOrDefault();
 
             _logger.LogInformation($"found user: {user}");
@@ -45,6 +70,7 @@ public class ChatUserService
         {
             var users = _chatDbContext.Users
                 .Where(u => emails.Contains(u.Email))
+                .AsNoTracking()
                 .ToArray();
 
             _logger.LogInformation($"found users: {users.Count()}");

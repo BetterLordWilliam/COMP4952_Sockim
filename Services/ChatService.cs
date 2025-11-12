@@ -37,13 +37,13 @@ public class ChatService
     /// Gets a chat by its Id.
     /// </summary>
     /// <param name="id"></param>
-    public async Task<Chat[]> GetChats(int? id)
+    public Chat[] GetChats(int? id)
     {
         try
         {
             var chats = (id is null)
                 ? _chatDbContext.Chats.ToArray()
-                : _chatDbContext.Chats.Where(c => c.Id == id).ToArray();
+                : _chatDbContext.Chats.Where(c => c.Id == id).AsNoTracking().ToArray();
 
             return chats;
         }
@@ -60,12 +60,12 @@ public class ChatService
     /// </summary>
     /// <param name="chatUser"></param>
     /// <returns></returns>
-    public async Task<Chat[]> GetChatsForUser(ChatUser? chatUser)
+    public Chat[] GetChatsForUser(ChatUser? chatUser)
     {
         try
         {
             var chats = _chatDbContext.Chats
-                .Where(c => c.ChatUsers.Contains(chatUser!)).ToArray();
+                .Where(c => c.ChatUsers.Contains(chatUser!)).AsNoTracking().ToArray();
 
             return chats;
         }
