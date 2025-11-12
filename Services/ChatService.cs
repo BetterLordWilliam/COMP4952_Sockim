@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using COMP4952_Sockim.Data;
+using COMP4952_Sockim.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace COMP4952_Sockim.Services;
@@ -14,6 +15,40 @@ public class ChatService
     {
         _logger = logger;
         _chatDbContext = chatDbContext;
+    }
+
+    public async Task AddChat(ChatDto chatDto)
+    {
+        try
+        {
+            ChatUser owner = _chatDbContext.Users
+                .Where(u => u.Id == chatDto.ChatOwnerId)
+                .FirstOrDefault()!;
+
+            Chat chat = new()
+            {
+                ChatName = chatDto.ChatName,
+                ChatOwnerId = chatDto.ChatOwnerId,
+                ChatOwner = owner
+            };
+            chat.ChatUsers.Add(owner);
+
+            _chatDbContext.Chats.Add(chat);
+
+            await _chatDbContext.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            _logger.LogError($"chats insertion update concurrency error: {ex.Message}");
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError($"chats insertion update error {ex.Message}");
+        }
+        catch (OperationCanceledException ex)
+        {
+            _logger.LogError($"chats insertion operation error: ${ex.Message}");
+        }
     }
 
     /// <summary>
