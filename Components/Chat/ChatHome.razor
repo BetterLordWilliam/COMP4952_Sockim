@@ -34,7 +34,7 @@
     }
 
     <p>Chats</p>
-    @foreach(Chat chat in _chats)
+    @foreach(ChatDto chat in _chats)
     {
         <button type="button" @onclick="() => OpenChat(chat)">@chat.ChatName</button>
         <br />
@@ -45,7 +45,7 @@ else
     <button type="button" @onclick="CloseChat">X</button>
     @if (_user is not null && _messageHubConnection is not null)
     {
-        <ChatForm MessageHubConnection=_messageHubConnection Chat=_chat User=_user/>
+        <ChatForm MessageHubConnection=_messageHubConnection ChatDto=_chat User=_user/>
     }
 }
 
@@ -57,8 +57,8 @@ else
     private Task<AuthenticationState>? _authState { get; set; }
     private ClaimsPrincipal _userClaim = null!;
     private ChatUser _user = null!;
-    private Chat _chat = null!;
-    private Chat[] _chats = [];
+    private ChatDto _chat = null!;
+    private List<ChatDto> _chats = [];
     private HubConnection? _chatHubConnection;
     private HubConnection? _invitationHubConnection;
     private HubConnection? _messageHubConnection;
@@ -82,6 +82,18 @@ else
                 .WithUrl(NavManager.ToAbsoluteUri("/chathub"))
                 .WithAutomaticReconnect()
                 .Build();
+
+            _chatHubConnection.On<ChatDto>("ChatCreated", async (ChatDto newChat) =>
+            {
+                _chats.Add(newChat);
+                await InvokeAsync(StateHasChanged);
+            });
+
+            _chatHubConnection.On<ChatDto[]>("RetrieveChats", async (ChatDto[] retrievedChats) =>
+            {
+                _chats.AddRange(retrievedChats);
+                await InvokeAsync(StateHasChanged);
+            });
 
             _invitationHubConnection = new HubConnectionBuilder()
                 .WithUrl(NavManager.ToAbsoluteUri("/invitationhub"))
@@ -113,7 +125,7 @@ else
         StateHasChanged();
     }
 
-    private void OpenChat(Chat chat)
+    private void OpenChat(ChatDto chat)
     {
         _chat = chat;
         _chatOpen = true;

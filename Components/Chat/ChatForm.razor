@@ -43,7 +43,7 @@
 
 @code {
     [Parameter]
-    public Chat Chat { get; set; } = null!;
+    public ChatDto ChatDto { get; set; } = null!;
     [Parameter]
     public ChatUser User { get; set; } = null!;
     [Parameter]
@@ -82,8 +82,8 @@
         if (MessageHubConnection.State == HubConnectionState.Disconnected)
             await MessageHubConnection.StartAsync();
         
-        await MessageHubConnection.SendAsync("JoinChat", Chat.Id, User.Id);
-        await MessageHubConnection.SendAsync("GetChatHistory", Chat.Id);
+        await MessageHubConnection.SendAsync("JoinChat", ChatDto.Id, User.Id);
+        await MessageHubConnection.SendAsync("GetChatHistory", ChatDto.Id);
     }
 
     private async Task ScrollToBottom()
@@ -101,7 +101,7 @@
 
         ChatMessageDto newMessage = new()
         {
-            ChatId = Chat.Id,
+            ChatId = ChatDto.Id,
             ChatUserId = User.Id,
             SenderEmail = User.Email ?? string.Empty,
             MessageContent = _message,
@@ -116,7 +116,7 @@
 
             if (MessageHubConnection is not null)
             {
-                await MessageHubConnection.SendAsync("SendMessage", Chat.Id, newMessage);
+                await MessageHubConnection.SendAsync("SendMessage", ChatDto.Id, newMessage);
                 await ScrollToBottom();
             }
 

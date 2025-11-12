@@ -62,4 +62,16 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", new { message = "Failed to create chat", error = ex.Message });
         }
     }
+
+    public async Task<ChatDto[]> RetrieveChatsForUser(int userId)
+    {
+        try
+        {
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error retriveing user chats {ex.Message}");
+            await Clients.Caller.SendAsync("Error", new { message = "Failed to get user chats" });
+        }
+    }
 }
