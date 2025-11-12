@@ -14,6 +14,7 @@
 @inject IJSRuntime JSRuntime
 @inject UserManager<ChatUser> UserManager
 @inject NavigationManager NavManager
+@inject ChatService ChatService
 
 <div class="chat-container">
     <div class="chat-header">
@@ -169,21 +170,7 @@
     /// </summary>
     private async Task LoadChatMembers()
     {
-        // For now, we'll populate from the chat DTO
-        // In a real app, you'd call a service to get current members
-        _chatMembers = new List<ChatUserDto>
-        {
-            new ChatUserDto { Id = ChatDto.ChatOwnerId, Email = ChatDto.ChatOwnerEmail }
-        };
-
-        if (ChatDto.InvitedEmails != null)
-        {
-            foreach (var email in ChatDto.InvitedEmails)
-            {
-                _chatMembers.Add(new ChatUserDto { Id = 0, Email = email });
-            }
-        }
-
+        _chatMembers = (await ChatService.GetChatMembers(ChatDto.Id)).ToList();
         await InvokeAsync(StateHasChanged);
     }
 
