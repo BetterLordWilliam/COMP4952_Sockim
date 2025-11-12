@@ -40,6 +40,8 @@ public class ChatHub : Hub
             // Create the chat
             ChatDto createdChat = await _chatService.AddChatWithInvitations(chatDto);
 
+            Console.WriteLine($"{Context.User.Identity.Name}, {Context.UserIdentifier}");
+
             // Add the invitations
             if (invitations != null && invitations.Count > 0)
             {
