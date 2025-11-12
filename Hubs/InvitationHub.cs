@@ -1,8 +1,124 @@
 using System;
+using COMP4952_Sockim.Models;
+using COMP4952_Sockim.Services;
+using Microsoft.AspNetCore.SignalR;
 
 namespace COMP4952_Sockim.Hubs;
 
-public class InvitationHub
+public class InvitationHub : Hub
 {
+    ILogger<InvitationHub> _logger;
+    InvitationsService _invitationsService;
 
+    public InvitationHub(
+        ILogger<InvitationHub> logger,
+        InvitationsService invitationsService)
+    {
+        _logger = logger;
+        _invitationsService = invitationsService;
+    }
+
+    /// <summary>
+    /// User accepts an invitation to a chat
+    /// </summary>
+    public async Task AcceptInvitation(int invitationSenderId, int chatId, int receiverId)
+    {
+        try
+        {
+            _logger.LogInformation($"User {receiverId} accepting invitation from {invitationSenderId} for chat {chatId}");
+
+            // TODO: Implement:
+            // 1. Update invitation in database (Accepted = true)
+            // 2. Add receiver to chat
+            // 3. Broadcast update to all clients
+            
+            /*
+            ChatInvitation? invitation = _chatDbContext.Invitations
+                .FirstOrDefault(i => i.SenderId == invitationSenderId && 
+                                     i.ReceiverId == receiverId && 
+                                     i.ChatId == chatId);
+            
+            if (invitation != null)
+            {
+                invitation.Accepted = true;
+                await _chatDbContext.SaveChangesAsync();
+                
+                Chat? chat = _chatService.GetChatById(chatId);
+                ChatUser? receiver = _chatUserService.GetUser(receiverId);
+                
+                if (chat != null && receiver != null)
+                {
+                    chat.ChatUsers.Add(receiver);
+                    await _chatDbContext.SaveChangesAsync();
+                    
+                    // Notify all clients
+                    await Clients.All.SendAsync("InvitationAccepted", new { ChatId = chatId, UserId = receiverId });
+                }
+            }
+            */
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error accepting invitation: {ex.Message}");
+            await Clients.Caller.SendAsync("Error", new { message = "Failed to accept invitation", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// User rejects an invitation to a chat
+    /// </summary>
+    public async Task RejectInvitation(int invitationSenderId, int chatId, int receiverId)
+    {
+        try
+        {
+            _logger.LogInformation($"User {receiverId} rejecting invitation from {invitationSenderId} for chat {chatId}");
+
+            // TODO: Implement:
+            // 1. Delete invitation from database
+            // 2. Notify relevant clients
+            
+            /*
+            ChatInvitation? invitation = _chatDbContext.Invitations
+                .FirstOrDefault(i => i.SenderId == invitationSenderId && 
+                                     i.ReceiverId == receiverId && 
+                                     i.ChatId == chatId);
+            
+            if (invitation != null)
+            {
+                _chatDbContext.Invitations.Remove(invitation);
+                await _chatDbContext.SaveChangesAsync();
+                
+                // Notify relevant clients
+                await Clients.All.SendAsync("InvitationRejected", new { ChatId = chatId, UserId = receiverId });
+            }
+            */
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error rejecting invitation: {ex.Message}");
+            await Clients.Caller.SendAsync("Error", new { message = "Failed to reject invitation", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get all pending invitations for a user
+    /// </summary>
+    public async Task GetPendingInvitations(int userId)
+    {
+        try
+        {
+            // TODO: Implement:
+            // 1. Query pending invitations for user
+            // 2. Convert to DTOs
+            // 3. Send back to caller
+
+            ChatInvitationDto[] pendingInvitations = await _invitationsService.GetUserInvitation(userId);
+            await Clients.Caller.SendAsync("PendingInvitations", pendingInvitations);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error getting pending invitations: {ex.Message}");
+            await Clients.Caller.SendAsync("Error", new { message = "Failed to get invitations", error = ex.Message });
+        }
+    }
 }

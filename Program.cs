@@ -9,6 +9,7 @@ using COMP4952_Sockim.Data;
 using Microsoft.Extensions.DependencyInjection;
 using COMP4952_Sockim.Components.Account;
 using COMP4952_Sockim.Services;
+using Microsoft.DotNet.Scaffolding.Shared.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
 // var connectionString = builder.Configuration.GetConnectionString("ChatDbContext") ?? throw new InvalidOperationException("Connection string 'ChatDbContextConnection' not found.");
@@ -107,6 +108,8 @@ app.MapRazorComponents<App>()
 
 app.MapHub<TestChatHub>("chathubtest");
 app.MapHub<ChatHub>("chathub");
+app.MapHub<MessageHub>("messagehub");
+app.MapHub<InvitationHub>("invitationhub");
 
 app.MapAdditionalIdentityEndpoints();;
 

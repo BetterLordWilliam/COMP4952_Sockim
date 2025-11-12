@@ -9,5 +9,6 @@ public class ChatInvitationDto
     public int ReceiverId { get; set; }
     public string ReceiverEmail { get; set; } = string.Empty;
     public int ChatId { get; set; }
+    public string ChatName { get; set; } = string.Empty;
     public bool Accepted { get; set; }
 }

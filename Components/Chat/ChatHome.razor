@@ -1,20 +1,36 @@
 ﻿@using COMP4952_Sockim.Services
 @using COMP4952_Sockim.Data
+@using COMP4952_Sockim.Models
 @using Microsoft.AspNetCore.Identity
 @using System.Security.Claims
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Extensions.Options
+@using System.Numerics
 
 @rendermode InteractiveServer
+@inject NavigationManager NavManager
 @inject UserManager<ChatUser> UserManager
-@inject AuthenticationStateProvider ASP
 @inject ChatService ChatService
+
+<h1>INFO</h1>
+<ul>
+    <li>Chat: @IsChatConnected</li>
+    <li>Invitation: @IsInvitationConnected</li>
+    <li>Message: @IsMessageConnected</li>
+</ul>
 
 @if(!_chatOpen)
 {
-    <p>Create a new chat</p>
     <button @onclick="OnAddChat">Add Chat</button>
-    @if(_showCreateChat)
+    @if(_user is not null && _chatHubConnection is not null)
     {
-        <ChatCreateForm OnFormSubmit="@CloseAddChat"></ChatCreateForm>
+        <ChatCreateForm ChatHubConnection=_chatHubConnection User=_user></ChatCreateForm>
+    }
+
+    <p>Invitations</p>
+    @if(_user is not null && _invitationHubConnection is not null)
+    {
+        <ChatInvitations InvitationHubConnection=_invitationHubConnection User=_user/>
     }
 
     <p>Chats</p>
@@ -27,37 +43,68 @@
 else
 {
     <button type="button" @onclick="CloseChat">X</button>
-    <ChatForm Chat=_chat/>
+    @if (_user is not null && _messageHubConnection is not null)
+    {
+        <ChatForm MessageHubConnection=_messageHubConnection Chat=_chat User=_user/>
+    }
 }
 
 @code {
     private bool _showCreateChat = false;
     private bool _chatOpen = false;
     private ElementReference _chatForm;
-    private AuthenticationState _authState = null!;
+    [CascadingParameter]
+    private Task<AuthenticationState>? _authState { get; set; }
     private ClaimsPrincipal _userClaim = null!;
     private ChatUser _user = null!;
     private Chat _chat = null!;
     private Chat[] _chats = [];
+    private HubConnection? _chatHubConnection;
+    private HubConnection? _invitationHubConnection;
+    private HubConnection? _messageHubConnection;
+    private bool IsChatConnected => _chatHubConnection?.State == HubConnectionState.Connected;
+    private bool IsInvitationConnected => _invitationHubConnection?.State == HubConnectionState.Connected;
+    private bool IsMessageConnected => _messageHubConnection?.State == HubConnectionState.Connected;
 
     protected override async Task OnInitializedAsync()
     {
-        await base.OnInitializedAsync();
-
-        _authState = await ASP.GetAuthenticationStateAsync();
-        _userClaim = _authState.User;
-
-        if (_userClaim.Identity!.IsAuthenticated)
+        if (_authState is not null)
         {
-            _user = (await UserManager.GetUserAsync(_userClaim))!;
-            _chats = ChatService.GetChatsForUser(_user);
+            var authState = await _authState;
+            _userClaim = authState.User;
+
+            if (_userClaim.Identity!.IsAuthenticated)
+            {
+                _user = (await UserManager.GetUserAsync(_userClaim))!;
+            }
+
+            _chatHubConnection = new HubConnectionBuilder()
+                .WithUrl(NavManager.ToAbsoluteUri("/chathub"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            _invitationHubConnection = new HubConnectionBuilder()
+                .WithUrl(NavManager.ToAbsoluteUri("/invitationhub"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            _messageHubConnection = new HubConnectionBuilder()
+                .WithUrl(NavManager.ToAbsoluteUri("/messagehub"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            if (_chatHubConnection.State == HubConnectionState.Disconnected)
+                await _chatHubConnection.StartAsync();
+            if (_invitationHubConnection.State == HubConnectionState.Disconnected)
+                await _invitationHubConnection.StartAsync();
+            if (_messageHubConnection.State == HubConnectionState.Disconnected)
+                await _messageHubConnection.StartAsync();
         }
     }
 
     private void OnAddChat()
     {
         _showCreateChat = true;
-        
     }
 
     private void CloseAddChat()

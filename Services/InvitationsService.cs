@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using COMP4952_Sockim.Data;
 using COMP4952_Sockim.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace COMP4952_Sockim.Services;
 
@@ -70,6 +71,41 @@ public class InvitationsService
         catch (Exception ex)
         {
             _logger.LogError($"Could not add invitation: {ex.Message}");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Get invitations for a specific user.
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <returns></returns>
+    public async Task<ChatInvitationDto[]> GetUserInvitation(int userId)
+    {
+        try
+        {
+            ChatInvitation[] invitations = _chatDbContext.Invitations
+                .Include(i => i.Chat)
+                .Include(i => i.Sender)
+                .Include(i => i.Receiver)
+                .Where(i => i.ReceiverId == userId && !i.Accepted)
+                .AsNoTracking()
+                .ToArray();
+
+            return invitations.Select(i => new ChatInvitationDto
+            {
+                ChatId = i.ChatId,
+                ChatName = i.Chat.ChatName,
+                SenderId = i.SenderId,
+                ReceiverId = i.ReceiverId,
+                ReceiverEmail = i.Receiver.Email ?? string.Empty,
+                SenderEmail = i.Sender.Email ?? string.Empty,
+                Accepted = i.Accepted
+            }).ToArray();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Could not get invitations: {ex.Message}");
             throw;
         }
     }

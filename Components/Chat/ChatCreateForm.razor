@@ -49,71 +49,44 @@
                 @onkeydown="AddEmail" />
     </label>
     <br />
-    <button type="submit" disabled="@(!IsConnected)">
+    <button type="submit" disabled="@(!IsChatConnected)">
         Submit
     </button>
 </form>
 
 @code {
     [Parameter]
-    public EventCallback OnFormSubmit { get; set; }
-
-    private ChatUser? _user;
-    private AuthenticationState? _authState;
-    private ClaimsPrincipal? _claimsPrincipal;
-    private HubConnection? _hubConnection;
+    public ChatUser User { get; set; } = null!;
+    [Parameter]
+    public HubConnection ChatHubConnection { get; set; } = null!;
 
     private string _chatName { get; set; } = string.Empty;
     private List<string> _emails { get; set; } = new ();
     private string _newEmail { get; set; } = string.Empty;
-
     private string _badEmail { get; set; } = string.Empty;
     private string _badEmailMessage { get; set; } = string.Empty;
     private bool _isBadEmail = false;
-
-    public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
+    private bool IsChatConnected => ChatHubConnection?.State == HubConnectionState.Connected;
 
     protected override async Task OnInitializedAsync()
     {
-        _authState = await ASP.GetAuthenticationStateAsync();
-        _claimsPrincipal = _authState.User;
-        if (_authState.User.Identity!.IsAuthenticated)
-        {
-            _user = (await UserManager.GetUserAsync(_claimsPrincipal))!;
-        }
-
-        // Initialize SignalR connection
-        _hubConnection = new HubConnectionBuilder()
-            .WithUrl(NavManager.ToAbsoluteUri("/chathub"))
-            .WithAutomaticReconnect()
-            .Build();
-
-        _hubConnection.On<ChatDto>("ChatCreated", async (chatDto) =>
+        ChatHubConnection.On<ChatDto>("ChatCreated", async (chatDto) =>
         {
             // Chat was created successfully
-            if (OnFormSubmit.HasDelegate)
-            {
-                await OnFormSubmit.InvokeAsync();
-            }
+            Console.WriteLine("Chat created FRONT END");
             ResetForm();
             await InvokeAsync(StateHasChanged);
         });
 
-        _hubConnection.On<object>("Error", async (error) =>
+        ChatHubConnection.On<object>("Error", async (error) =>
         {
             // Handle error
             Console.WriteLine($"Error from server: {error}");
             await InvokeAsync(StateHasChanged);
         });
 
-        try
-        {
-            await _hubConnection.StartAsync();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error connecting to hub: {ex.Message}");
-        }
+        if (ChatHubConnection.State == HubConnectionState.Disconnected)
+            await ChatHubConnection.StartAsync();
     }
 
     private async Task OnChatCreateSubmit() 
@@ -125,7 +98,7 @@
             return;
         }
 
-        if (_user == null)
+        if (User == null)
         {
             _badEmailMessage = "User not authenticated";
             _isBadEmail = true;
@@ -136,7 +109,7 @@
         ChatDto chatDto = new()
         {
             ChatName = _chatName,
-            ChatOwnerId = _user.Id,
+            ChatOwnerId = User.Id,
             InvitedEmails = new List<string>(_emails)
         };
 
@@ -150,8 +123,8 @@
             {
                 invitations.Add(new ChatInvitationDto
                 {
-                    SenderId = _user.Id,
-                    SenderEmail = _user.Email ?? string.Empty,
+                    SenderId = User.Id,
+                    SenderEmail = User.Email ?? string.Empty,
                     ReceiverId = invitedUser.Id,
                     ReceiverEmail = invitedUser.Email ?? string.Empty,
                     Accepted = false
@@ -160,11 +133,11 @@
         }
 
         // Send to hub
-        if (_hubConnection != null && IsConnected)
+        if (ChatHubConnection != null && IsChatConnected)
         {
             try
             {
-                await _hubConnection.SendAsync("AddChat", chatDto, invitations);
+                await ChatHubConnection.SendAsync("AddChat", chatDto, invitations);
             }
             catch (Exception ex)
             {
@@ -181,7 +154,7 @@
 
         if(checkKey && !_newEmail.IsNullOrEmpty() && !_emails.Contains(_newEmail))
         {
-            if (_newEmail == _user?.Email)
+            if (_newEmail == User?.Email)
             {
                 _badEmail = _newEmail;
                 _isBadEmail = true;
@@ -241,9 +214,9 @@
 
     public async ValueTask DisposeAsync()
     {
-        if (_hubConnection is not null)
+        if (ChatHubConnection is not null)
         {
-            await _hubConnection.DisposeAsync();
+            await ChatHubConnection.DisposeAsync();
         }
     }
 }

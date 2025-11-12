@@ -1,0 +1,69 @@
+﻿@using COMP4952_Sockim.Models
+@using COMP4952_Sockim.Data
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Identity.Client
+@using System.Security.Claims
+
+@implements IAsyncDisposable
+@inject NavigationManager NavManager
+@inject AuthenticationStateProvider ASP
+@inject UserManager<ChatUser> UserManager
+
+@foreach(ChatInvitationDto invitation in _invitations)
+{
+    <span>@invitation.ChatName, @invitation.SenderEmail, @invitation.ReceiverEmail</span>
+    <button type="button" @onclick="() => AcceptInvitation(invitation)">O</button>
+    <button type="button" @onclick="() => DeclineInvitation(invitation)">X</button>
+}
+
+@code {
+    [Parameter]
+    public ChatUser User { get; set; } = null!;
+    [Parameter]
+    public HubConnection InvitationHubConnection { get; set; } = null!;
+
+    private bool IsConnected => InvitationHubConnection?.State == HubConnectionState.Connected;
+    private List<ChatInvitationDto> _invitations = [];
+    [CascadingParameter]
+    private Task<AuthenticationState>? _authState { get; set; }
+    private ClaimsPrincipal _claimsPrincipal = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        InvitationHubConnection = new HubConnectionBuilder()
+            .WithUrl(NavManager.ToAbsoluteUri("/invitationhub"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        InvitationHubConnection.On<ChatInvitationDto[]>("PendingInvitations", async (ChatInvitationDto[] invitations) => {
+            Console.WriteLine("Adding pending invitations");
+            _invitations.AddRange(invitations);
+
+            await InvokeAsync(StateHasChanged);
+        });
+
+        if (InvitationHubConnection.State == HubConnectionState.Disconnected)
+            await InvitationHubConnection.StartAsync();
+        
+        await InvitationHubConnection.SendAsync("GetPendingInvitations", User.Id);
+    }
+
+    private void AcceptInvitation(ChatInvitationDto invitationDto)
+    {
+
+    }
+
+    private void DeclineInvitation(ChatInvitationDto invitationDto)
+    {
+
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (InvitationHubConnection is not null)
+        {
+            await InvitationHubConnection.DisposeAsync();
+        }
+    }
+}
