@@ -64,7 +64,7 @@
                         <span>@member.Email</span>
                         @if (User?.Id == ChatDto.ChatOwnerId && member.Id != ChatDto.ChatOwnerId)
                         {
-                            <button type="button" class="btn-remove" @onclick="() => RemoveMember(member.Id)" title="Remove member">✕</button>
+                            <button type="button" class="btn-remove" @onclick="() => RemoveMember(member.Id)" title="Remove member">X</button>
                         }
                     </li>
                 }
@@ -108,29 +108,26 @@
     {
         if (MessageHubConnection is not null)
         {
-            MessageHubConnection.On<object>("UserJoined", async (object info) => {
-                Console.WriteLine($"User join info {info}");
-                await LoadChatMembers();
+            MessageHubConnection.On<ChatUserDto>("UserJoined", (ChatUserDto user) => {
             });
 
-            MessageHubConnection.On<object>("UserLeft", async (object info) => {
-                Console.WriteLine($"User left info {info}");
-                await LoadChatMembers();
+            MessageHubConnection.On<ChatUserDto>("UserLeft", (ChatUserDto user) => {
             });
 
-            MessageHubConnection.On<object>("MemberJoined", async (object info) => {
-                Console.WriteLine($"Member joined {info}");
-                await LoadChatMembers();
+            MessageHubConnection.On<ChatUserDto>("MemberJoined", (ChatUserDto user) => {
             });
 
-            MessageHubConnection.On<object>("MemberRemoved", async (object info) => {
-                Console.WriteLine($"Member removed {info}");
-                await LoadChatMembers();
+            MessageHubConnection.On<ChatUserDto>("MemberRemoved", (ChatUserDto user) => {
             });
 
             MessageHubConnection.On<ChatMessageDto>("ReceiveMessage", (ChatMessageDto message) =>
             {
                 _messages.Add(message);
+                InvokeAsync(StateHasChanged);
+            });
+
+            MessageHubConnection.On<ChatUserDto[]>("RetrievedUsers", (ChatUserDto[] users) => {
+                _chatMembers = users.ToList();
                 InvokeAsync(StateHasChanged);
             });
 
@@ -142,7 +139,7 @@
 
             await MessageHubConnection.SendAsync("JoinChat", ChatDto.Id, User.Id);
             await MessageHubConnection.SendAsync("GetChatHistory", ChatDto.Id);
-            await LoadChatMembers();
+            await MessageHubConnection.SendAsync("GetChatMembers", ChatDto.Id);
         }
 
         if (InvitationHubConnection is not null)
@@ -163,15 +160,6 @@
                 NavManager.NavigateTo("/");
             });
         }
-    }
-
-    /// <summary>
-    /// Load chat members from the chat.
-    /// </summary>
-    private async Task LoadChatMembers()
-    {
-        _chatMembers = (await ChatService.GetChatMembers(ChatDto.Id)).ToList();
-        await InvokeAsync(StateHasChanged);
     }
 
     private async Task ScrollToBottom()

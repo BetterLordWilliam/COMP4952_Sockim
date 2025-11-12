@@ -33,11 +33,9 @@ public class MessageHub : Hub
         {
             _logger.LogInformation($"User {userId} joining chat {chatId}");
 
-            // Add user to a group for this chat
             string groupName = $"chat-{chatId}";
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
 
-            // Notify others in the chat
             await Clients.Group(groupName).SendAsync("UserJoined", new { ChatId = chatId, UserId = userId });
 
             _logger.LogInformation($"User {userId} added to chat group {groupName}");
@@ -119,6 +117,25 @@ public class MessageHub : Hub
         {
             _logger.LogError($"Error getting chat history: {ex.Message}");
             await Clients.Caller.SendAsync("Error", new { message = "Failed to load chat history", error = ex.Message });
+        }
+    }
+
+    public async Task GetChatMembers(int chatId)
+    {
+        try
+        {
+            _logger.LogInformation($"retrieving members for chat {chatId}");
+
+            ChatUserDto[] users = await _chatService.GetChatMembers(chatId);
+
+            await Clients.Caller.SendAsync("RetrievedUsers", users);
+
+            _logger.LogInformation($"send {users.Length} messages to called for chat {chatId}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"error getting members from the chat: {ex.Message}");
+            await Clients.Caller.SendAsync("Error", new { message = "Failed to load chat members", error = ex.Message });
         }
     }
 
