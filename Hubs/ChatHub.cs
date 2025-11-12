@@ -63,10 +63,17 @@ public class ChatHub : Hub
         }
     }
 
-    public async Task<ChatDto[]> RetrieveChatsForUser(int userId)
+    /// <summary>
+    /// Retrieve chatdtos for specific user.
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <returns></returns>
+    public async Task RetrieveChats(int userId)
     {
         try
         {
+            ChatDto[] userChats = _chatService.GetChatsForUser(userId);
+            await Clients.Caller.SendAsync("RetrievedChats", userChats);
         }
         catch (Exception ex)
         {

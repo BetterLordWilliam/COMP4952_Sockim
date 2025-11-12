@@ -10,7 +10,6 @@
 @using System.Security.Claims
 
 @rendermode InteractiveServer
-@implements IAsyncDisposable
 @inject IJSRuntime JSRuntime
 @inject UserManager<ChatUser> UserManager
 @inject NavigationManager NavManager
@@ -56,34 +55,36 @@
 
     protected override async Task OnInitializedAsync()
     {
-        MessageHubConnection.On<object>("UserJoined", async (object info) => {
-            Console.WriteLine($"User join info {info}");
-        });
-
-        MessageHubConnection.On<object>("UserLeft", async (object info) => {
-            Console.WriteLine($"User left info {info}");
-        });
-
-        MessageHubConnection.On<ChatMessageDto[]>("ChatHistory", async (ChatMessageDto[] messages) => {
-            Console.WriteLine($"Chat history info {messages[0].MessageContent}");
-            _messages.AddRange(messages.ToList());
-
-            await ScrollToBottom();
-            await InvokeAsync(StateHasChanged);
-        });
-
-        MessageHubConnection.On<ChatMessageDto>("ReceiveMessage", async (messageDto) =>
+        if (MessageHubConnection is not null)
         {
-            _messages.Add(messageDto);
-            await ScrollToBottom();
-            await InvokeAsync(StateHasChanged);
-        });
+            MessageHubConnection.On<object>("UserJoined", async (object info) => {
+                Console.WriteLine($"User join info {info}");
+            });
 
-        if (MessageHubConnection.State == HubConnectionState.Disconnected)
-            await MessageHubConnection.StartAsync();
-        
-        await MessageHubConnection.SendAsync("JoinChat", ChatDto.Id, User.Id);
-        await MessageHubConnection.SendAsync("GetChatHistory", ChatDto.Id);
+            MessageHubConnection.On<object>("UserLeft", async (object info) => {
+                Console.WriteLine($"User left info {info}");
+            });
+
+            MessageHubConnection.On<ChatMessageDto[]>("ChatHistory", async (ChatMessageDto[] messages) =>
+            {
+                _messages.AddRange(messages.ToList());
+                await ScrollToBottom();
+                await InvokeAsync(StateHasChanged);
+            });
+
+            MessageHubConnection.On<ChatMessageDto>("ReceiveMessage", async (messageDto) =>
+            {
+                _messages.Add(messageDto);
+                await ScrollToBottom();
+                await InvokeAsync(StateHasChanged);
+            });
+
+            if (MessageHubConnection.State == HubConnectionState.Disconnected)
+                await MessageHubConnection.StartAsync();
+            
+            await MessageHubConnection.SendAsync("JoinChat", ChatDto.Id, User.Id);
+            await MessageHubConnection.SendAsync("GetChatHistory", ChatDto.Id);
+        }
     }
 
     private async Task ScrollToBottom()
@@ -125,14 +126,6 @@
         catch (Exception ex)
         {
             Console.WriteLine($"Error sending message: {ex.Message}");
-        }
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (MessageHubConnection is not null)
-        {
-            await MessageHubConnection.DisposeAsync();
         }
     }
 }

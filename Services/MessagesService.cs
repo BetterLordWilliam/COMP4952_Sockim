@@ -69,8 +69,6 @@ public class MessagesService
                 .AsNoTracking()
                 .ToArray();
 
-            Console.WriteLine($"{messages[0].ChatUserId}, {messages[0].ChatUser}");
-
             return messages.Select(m => new ChatMessageDto
             {
                 Id = m.Id,

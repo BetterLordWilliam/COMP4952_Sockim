@@ -89,8 +89,9 @@ else
                 await InvokeAsync(StateHasChanged);
             });
 
-            _chatHubConnection.On<ChatDto[]>("RetrieveChats", async (ChatDto[] retrievedChats) =>
+            _chatHubConnection.On<ChatDto[]>("RetrievedChats", async (ChatDto[] retrievedChats) =>
             {
+                Console.WriteLine("Retrieved Chats");
                 _chats.AddRange(retrievedChats);
                 await InvokeAsync(StateHasChanged);
             });
@@ -111,6 +112,8 @@ else
                 await _invitationHubConnection.StartAsync();
             if (_messageHubConnection.State == HubConnectionState.Disconnected)
                 await _messageHubConnection.StartAsync();
+
+            await _chatHubConnection.SendAsync("RetrieveChats", _user.Id);
         }
     }
 

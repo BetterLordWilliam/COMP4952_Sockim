@@ -99,32 +99,37 @@ public class ChatService
     /// <summary>
     /// Gets all the chats for a specific user.
     /// </summary>
-    public Chat[] GetChatsForUser(ChatUser? chatUser)
+    public ChatDto[] GetChatsForUser(int userId)
     {
         try
         {
-            if (chatUser == null)
-            {
-                _logger.LogError("Cannot get chats for null user");
-                return Array.Empty<Chat>();
-            }
-
             var chats = _chatDbContext.Chats
-                .Where(c => c.ChatUsers.Contains(chatUser))
+                .Include(c => c.ChatOwner)
+                .Include(c => c.Invitations)
+                .Where(c => c.ChatUsers.Any(cu => cu.Id == userId))
                 .AsNoTracking()
                 .ToArray();
 
-            return chats;
+            Console.WriteLine(chats[0].Invitations[0].SenderId);
+
+            return chats.Select(c => new ChatDto()
+            {
+                Id = c.Id,
+                ChatName = c.ChatName,
+                ChatOwnerId = c.ChatOwnerId,
+                ChatOwnerEmail = c.ChatOwner.Email ?? string.Empty
+                // InvitedEmails = c.Invitations.Select(i => i.Receiver.Email ?? string.Empty).ToList()
+            }).ToArray();
         }
         catch (NullReferenceException ex)
         {
             _logger.LogError($"Null reference error: {ex.Message}");
-            return Array.Empty<Chat>();
+            return Array.Empty<ChatDto>();
         }
         catch (OperationCanceledException ex)
         {
             _logger.LogError($"Operation cancelled: {ex.Message}");
-            return Array.Empty<Chat>();
+            return Array.Empty<ChatDto>();
         }
     }
 

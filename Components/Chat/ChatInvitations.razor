@@ -5,7 +5,6 @@
 @using Microsoft.Identity.Client
 @using System.Security.Claims
 
-@implements IAsyncDisposable
 @inject NavigationManager NavManager
 @inject AuthenticationStateProvider ASP
 @inject UserManager<ChatUser> UserManager
@@ -31,22 +30,25 @@
 
     protected override async Task OnInitializedAsync()
     {
-        InvitationHubConnection = new HubConnectionBuilder()
-            .WithUrl(NavManager.ToAbsoluteUri("/invitationhub"))
-            .WithAutomaticReconnect()
-            .Build();
+        if (InvitationHubConnection is not null)
+        {
+            InvitationHubConnection = new HubConnectionBuilder()
+                .WithUrl(NavManager.ToAbsoluteUri("/invitationhub"))
+                .WithAutomaticReconnect()
+                .Build();
 
-        InvitationHubConnection.On<ChatInvitationDto[]>("PendingInvitations", async (ChatInvitationDto[] invitations) => {
-            Console.WriteLine("Adding pending invitations");
-            _invitations.AddRange(invitations);
+            InvitationHubConnection.On<ChatInvitationDto[]>("PendingInvitations", async (ChatInvitationDto[] invitations) => {
+                Console.WriteLine("Adding pending invitations");
+                _invitations.AddRange(invitations);
 
-            await InvokeAsync(StateHasChanged);
-        });
+                await InvokeAsync(StateHasChanged);
+            });
 
-        if (InvitationHubConnection.State == HubConnectionState.Disconnected)
-            await InvitationHubConnection.StartAsync();
-        
-        await InvitationHubConnection.SendAsync("GetPendingInvitations", User.Id);
+            if (InvitationHubConnection.State == HubConnectionState.Disconnected)
+                await InvitationHubConnection.StartAsync();
+            
+            await InvitationHubConnection.SendAsync("GetPendingInvitations", User.Id);
+        }
     }
 
     private void AcceptInvitation(ChatInvitationDto invitationDto)
@@ -57,13 +59,5 @@
     private void DeclineInvitation(ChatInvitationDto invitationDto)
     {
 
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (InvitationHubConnection is not null)
-        {
-            await InvitationHubConnection.DisposeAsync();
-        }
     }
 }

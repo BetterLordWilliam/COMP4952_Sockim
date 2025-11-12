@@ -8,7 +8,6 @@
 @using System.Security.Claims
 
 @rendermode InteractiveServer
-@implements IAsyncDisposable
 @inject UserManager<ChatUser> UserManager
 @inject AuthenticationStateProvider ASP
 @inject ChatUserService ChatUserService
@@ -70,23 +69,26 @@
 
     protected override async Task OnInitializedAsync()
     {
-        ChatHubConnection.On<ChatDto>("ChatCreated", async (chatDto) =>
+        if (ChatHubConnection is not null)
         {
-            // Chat was created successfully
-            Console.WriteLine("Chat created FRONT END");
-            ResetForm();
-            await InvokeAsync(StateHasChanged);
-        });
+            ChatHubConnection.On<ChatDto>("ChatCreated", async (chatDto) =>
+            {
+                // Chat was created successfully
+                Console.WriteLine("Chat created FRONT END");
+                ResetForm();
+                await InvokeAsync(StateHasChanged);
+            });
 
-        ChatHubConnection.On<object>("Error", async (error) =>
-        {
-            // Handle error
-            Console.WriteLine($"Error from server: {error}");
-            await InvokeAsync(StateHasChanged);
-        });
+            ChatHubConnection.On<object>("Error", async (error) =>
+            {
+                // Handle error
+                Console.WriteLine($"Error from server: {error}");
+                await InvokeAsync(StateHasChanged);
+            });
 
-        if (ChatHubConnection.State == HubConnectionState.Disconnected)
-            await ChatHubConnection.StartAsync();
+            if (ChatHubConnection.State == HubConnectionState.Disconnected)
+                await ChatHubConnection.StartAsync();
+        }
     }
 
     private async Task OnChatCreateSubmit() 
@@ -210,13 +212,5 @@
         _isBadEmail = false;
         _badEmail = string.Empty;
         _badEmailMessage = string.Empty;
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (ChatHubConnection is not null)
-        {
-            await ChatHubConnection.DisposeAsync();
-        }
     }
 }
