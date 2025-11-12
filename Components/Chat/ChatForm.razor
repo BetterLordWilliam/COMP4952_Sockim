@@ -20,12 +20,15 @@
 <div class="chat-container">
     <div class="message-list-wrapper" @ref="_messageListWrapper">
         <ul class="message-list">
-            @foreach (ChatMessageDto message in _messages)
+            @if (Messages is not null)
             {
-                <li>
-                    <span><b>@message.SenderEmail</b>, <b>@message.MessageDateTime</b></span>
-                    <p>@message.MessageContent</p>
-                </li>
+                @foreach (ChatMessageDto message in Messages)
+                {
+                    <li>
+                        <span><b>@message.SenderEmail</b>, <b>@message.MessageDateTime</b></span>
+                        <p>@message.MessageContent</p>
+                    </li>
+                }
             }
         </ul>
     </div>
@@ -48,35 +51,19 @@
     [Parameter]
     public HubConnection MessageHubConnection { get; set; } = null!;
     [Parameter]
+    public List<ChatMessageDto>? Messages { get; set; }
+    [Parameter]
     public bool Disabled { get; set; } = true;
 
     private ElementReference _messageListWrapper;
-    private List<ChatMessageDto> _messages = [];
     private string _message = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
         if (MessageHubConnection is not null)
         {
-            MessageHubConnection.On<object>("UserJoined", async (object info) => {
-                Console.WriteLine($"User join info {info}");
-            });
-
-            MessageHubConnection.On<object>("UserLeft", async (object info) => {
-                Console.WriteLine($"User left info {info}");
-            });
-
-            MessageHubConnection.On<ChatMessageDto>("ReceiveMessage", (ChatMessageDto message) =>
-            {
-                _messages.Add(message);
-                InvokeAsync(StateHasChanged);
-            });
-
-            MessageHubConnection.On<ChatMessageDto[]>("RetrievedChats", (ChatMessageDto[] messages) =>
-            {
-                _messages = messages.ToList();
-                InvokeAsync(StateHasChanged);
-            });
+            await MessageHubConnection.SendAsync("JoinChat", ChatDto.Id, User.Id);
+            await MessageHubConnection.SendAsync("GetChatHistory", ChatDto.Id);
         }
     }
 

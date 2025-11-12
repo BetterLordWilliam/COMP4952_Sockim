@@ -2,9 +2,11 @@
 @using COMP4952_Sockim.Models
 @using Microsoft.AspNetCore.SignalR.Client
 
-@if (User is not null && ChatHubConnection is not null)
+@if (User is not null
+    && Chats is not null
+    && ChatHubConnection is not null)
 {
-    @foreach(ChatDto chat in _chats)
+    @foreach(ChatDto chat in Chats)
     {
         <button type="button" @onclick="() => OpenChat(chat)">@chat.ChatName</button>
         <hr />
@@ -14,13 +16,16 @@
 
 @code {
     [Parameter]
+    public EventCallback<ChatDto> ChatOpened { get; set; }
+    [Parameter]
     public HubConnection? ChatHubConnection { get; set; }
+    [Parameter]
+    public List<ChatDto>? Chats { get; set; }
     [Parameter]
     public ChatUser? User { get; set; }
 
-    private List<ChatDto> _chats = [];
-
-    private void OpenChat(ChatDto chat)
+    private async Task OpenChat(ChatDto chat)
     {
+        await ChatOpened.InvokeAsync(chat);
     }
 }

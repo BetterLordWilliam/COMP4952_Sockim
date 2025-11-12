@@ -23,26 +23,12 @@
     [Parameter]
     public HubConnection? InvitationHubConnection { get; set; }
     [Parameter]
-    public Action<ChatInvitationDto>? OnInvitationCreated { get; set; }
-    [Parameter]
-    public Action<ChatInvitationDto[]>? OnInvitationsRetrieved { get; set; }
-    [Parameter]
     public ChatUser? User { get; set; }
     [Parameter]
     public List<ChatInvitationDto> Invitations { get; set; } = [];
 
     protected override void OnInitialized()
     {
-        Console.WriteLine(OnInvitationCreated is not null);
-        Console.WriteLine(OnInvitationsRetrieved is not null);
-
-        if (OnInvitationCreated is not null)
-            OnInvitationCreated += HandleInvitationCreated;
-        if (OnInvitationsRetrieved is not null)
-            OnInvitationsRetrieved += HandleInvitationsRetrieved;
-
-        Console.WriteLine(OnInvitationCreated is not null);
-        Console.WriteLine(OnInvitationsRetrieved is not null);
     }
 
     private void HandleInvitationCreated(ChatInvitationDto invitation)
@@ -63,9 +49,5 @@
 
     public async ValueTask DisposeAsync()
     {
-        if (OnInvitationCreated is not null)
-            OnInvitationCreated -= HandleInvitationCreated;
-        if (OnInvitationsRetrieved is not null)
-            OnInvitationsRetrieved -= HandleInvitationsRetrieved;
     }
 }

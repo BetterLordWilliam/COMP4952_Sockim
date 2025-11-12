@@ -111,7 +111,7 @@ public class MessageHub : Hub
             ChatMessageDto[] messages = _messagesService.GetChatMessages(chatId);
 
             // Send history only to the caller
-            await Clients.Caller.SendAsync("ChatHistory", messages);
+            await Clients.Caller.SendAsync("RetrievedMessages", messages);
 
             _logger.LogInformation($"Sent {messages.Length} messages to caller for chat {chatId}");
         }

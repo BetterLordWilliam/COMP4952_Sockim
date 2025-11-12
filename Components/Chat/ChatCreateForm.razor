@@ -120,6 +120,7 @@
             {
                 invitations.Add(new ChatInvitationDto
                 {
+                    ChatName = _chatName,
                     SenderId = User.Id,
                     SenderEmail = User.Email ?? string.Empty,
                     ReceiverId = invitedUser.Id,

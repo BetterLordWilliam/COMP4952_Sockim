@@ -27,9 +27,10 @@ public class ChatHub : Hub
         _invitationService = invitationService;
     }
 
-    public async Task AddNotificationUser(ChatUserDto chatUserDto)
+    public async Task AddNotificationUser(int id)
     {
-        string userGroupName = $"user-{chatUserDto.Id}";
+        Console.WriteLine($"new user group {id}");
+        string userGroupName = $"user-{id}";
         await Groups.AddToGroupAsync(Context.ConnectionId, userGroupName);
     }
 
@@ -52,8 +53,6 @@ public class ChatHub : Hub
             // Create the chat
             ChatDto createdChat = await _chatService.AddChatWithInvitations(chatDto);
 
-            Console.WriteLine($"{Context.User.Identity.Name}, {Context.UserIdentifier}");
-
             // Add the invitations
             if (invitations != null && invitations.Count > 0)
             {
@@ -61,6 +60,8 @@ public class ChatHub : Hub
                 foreach (var invitation in invitations)
                 {
                     invitation.ChatId = createdChat.Id;
+                    Console.WriteLine($"Receiver id: {invitation.ReceiverId}");
+
                     await _invitationService.AddInvitation(invitation);
                     await Clients.Group($"user-{invitation.ReceiverId}").SendAsync("IncomingInvitation", invitation);
                 }
