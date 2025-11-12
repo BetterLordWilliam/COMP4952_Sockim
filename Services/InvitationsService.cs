@@ -2,7 +2,9 @@ using System;
 using System.Threading.Tasks;
 using COMP4952_Sockim.Data;
 using COMP4952_Sockim.Models;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.EntityFrameworkCore;
+using NuGet.Protocol.Plugins;
 
 namespace COMP4952_Sockim.Services;
 
@@ -15,6 +17,47 @@ public class InvitationsService
     {
         _logger = logger;
         _chatDbContext = chatDbContext;
+    }
+
+    public async Task<ChatDto?> AcceptInvitation(ChatInvitationDto invitationDto)
+    {
+        try
+        {
+            Chat chat = (await _chatDbContext.Chats
+                .Include(c => c.ChatOwner)
+                .Include(c => c.ChatUsers)
+                .Where(c => c.Id == invitationDto.ChatId)
+                .AsNoTracking()
+                .FirstOrDefaultAsync())!;
+            ChatUser invitee = (await _chatDbContext.Users
+                .Where(u => u.Id == invitationDto.ReceiverId)
+                .FirstOrDefaultAsync())!;
+
+            chat.ChatUsers.Add(invitee);
+
+            await _chatDbContext.Invitations
+                .Where(i => i.ChatId == invitationDto.ChatId
+                            && i.SenderId == invitationDto.SenderId
+                            && i.ReceiverId == invitationDto.ReceiverId)
+                .ExecuteDeleteAsync();
+
+            await _chatDbContext.SaveChangesAsync();
+
+            _logger.LogInformation($"user {invitationDto.ReceiverId} added to chat {invitationDto.ChatId}");
+
+            return new ChatDto()
+            {
+                Id = chat.Id,
+                ChatName = chat.ChatName,
+                ChatOwnerId = chat.ChatOwnerId,
+                ChatOwnerEmail = chat.ChatOwner.Email ?? string.Empty,
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"could not accept invitation {ex.Message}");
+            return null;
+        }
     }
 
     /// <summary>

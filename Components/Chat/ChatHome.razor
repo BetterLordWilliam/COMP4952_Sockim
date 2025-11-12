@@ -119,6 +119,11 @@ else
                 .WithAutomaticReconnect()
                 .Build();
 
+            _invitationHubConnection.On<ChatDto>("InvitationAccpeted", (ChatDto newChat) => {
+                _chats.Add(newChat);
+                InvokeAsync(StateHasChanged);
+            });
+
             _invitationHubConnection.On<ChatInvitationDto[]>("RetrievedInvitations", (ChatInvitationDto[] invitations) =>
             {
                 _invitations = invitations.ToList();
@@ -130,26 +135,6 @@ else
                 .WithAutomaticReconnect()
                 .Build();
 
-            _messageHubConnection.On<object>("UserJoined", async (object info) => {
-                Console.WriteLine($"User join info {info}");
-            });
-
-            _messageHubConnection.On<object>("UserLeft", async (object info) => {
-                Console.WriteLine($"User left info {info}");
-            });
-
-            _messageHubConnection.On<ChatMessageDto>("ReceiveMessage", (ChatMessageDto message) =>
-            {
-                _messages.Add(message);
-                InvokeAsync(StateHasChanged);
-            });
-
-            _messageHubConnection.On<ChatMessageDto[]>("RetrievedMessages", (ChatMessageDto[] messages) =>
-            {
-                _messages = messages.ToList();
-                InvokeAsync(StateHasChanged);
-            });
-
             if (_chatHubConnection.State == HubConnectionState.Disconnected)
                 await _chatHubConnection.StartAsync();
             if (_invitationHubConnection.State == HubConnectionState.Disconnected)
@@ -159,6 +144,7 @@ else
 
             await _chatHubConnection.SendAsync("AddNotificationUser", _user.Id);
             await _chatHubConnection.SendAsync("RetrieveChats", _user.Id);
+            await _invitationHubConnection.SendAsync("AddInvitationUser", _user.Id);
             await _invitationHubConnection.SendAsync("RetrieveInvitations", _user.Id);
         }
     }

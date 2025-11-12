@@ -11,6 +11,7 @@
 @using System.Security.Claims
 
 @rendermode InteractiveServer
+@implements IAsyncDisposable
 @inject IJSRuntime JSRuntime
 @inject UserManager<ChatUser> UserManager
 @inject NavigationManager NavManager
@@ -22,7 +23,7 @@
         <ul class="message-list">
             @if (Messages is not null)
             {
-                @foreach (ChatMessageDto message in Messages)
+                @foreach (ChatMessageDto message in _messages)
                 {
                     <li>
                         <span><b>@message.SenderEmail</b>, <b>@message.MessageDateTime</b></span>
@@ -56,12 +57,32 @@
     public bool Disabled { get; set; } = true;
 
     private ElementReference _messageListWrapper;
+    private List<ChatMessageDto> _messages = [];
     private string _message = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
         if (MessageHubConnection is not null)
         {
+            MessageHubConnection.On<object>("UserJoined", async (object info) => {
+                Console.WriteLine($"User join info {info}");
+            });
+
+            MessageHubConnection.On<object>("UserLeft", async (object info) => {
+                Console.WriteLine($"User left info {info}");
+            });
+
+            MessageHubConnection.On<ChatMessageDto>("ReceiveMessage", (ChatMessageDto message) =>
+            {
+                _messages.Add(message);
+                InvokeAsync(StateHasChanged);
+            });
+
+            MessageHubConnection.On<ChatMessageDto[]>("RetrievedMessages", (ChatMessageDto[] messages) =>
+            {
+                _messages = messages.ToList();
+                InvokeAsync(StateHasChanged);
+            });
             await MessageHubConnection.SendAsync("JoinChat", ChatDto.Id, User.Id);
             await MessageHubConnection.SendAsync("GetChatHistory", ChatDto.Id);
         }
@@ -103,6 +124,14 @@
         catch (Exception ex)
         {
             Console.WriteLine($"Error sending message: {ex.Message}");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (MessageHubConnection is not null)
+        {
+            await MessageHubConnection.SendAsync("LeaveChat", ChatDto.Id, User.Id);
         }
     }
 }

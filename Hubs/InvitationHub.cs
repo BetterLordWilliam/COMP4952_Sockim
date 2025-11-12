@@ -18,49 +18,49 @@ public class InvitationHub : Hub
         _invitationsService = invitationsService;
     }
 
+    public async Task AddInvitationUser(int userId)
+    {
+        string userGroup = $"user-{userId}";
+        await Groups.AddToGroupAsync(Context.ConnectionId, userGroup);
+    }
+
+    public async Task RemoveInvitationUser(int userId)
+    {
+        string userGroup = $"user-{userId}";
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, userGroup);
+    }
+
     /// <summary>
     /// User accepts an invitation to a chat
     /// </summary>
-    public async Task AcceptInvitation(int invitationSenderId, int chatId, int receiverId)
+    public async Task AcceptInvitation(ChatInvitationDto invitationDto)
     {
         try
         {
-            _logger.LogInformation($"User {receiverId} accepting invitation from {invitationSenderId} for chat {chatId}");
+            _logger.LogInformation($"User {invitationDto.ReceiverId} accepting invitation from {invitationDto.SenderId} for chat {invitationDto.ChatId}");
 
             // TODO: Implement:
             // 1. Update invitation in database (Accepted = true)
             // 2. Add receiver to chat
             // 3. Broadcast update to all clients
-            
-            /*
-            ChatInvitation? invitation = _chatDbContext.Invitations
-                .FirstOrDefault(i => i.SenderId == invitationSenderId && 
-                                     i.ReceiverId == receiverId && 
-                                     i.ChatId == chatId);
-            
-            if (invitation != null)
+
+            invitationDto.Accepted = true;
+            ChatDto? newChat = await _invitationsService.AcceptInvitation(invitationDto);
+
+            if (newChat is not null)
             {
-                invitation.Accepted = true;
-                await _chatDbContext.SaveChangesAsync();
-                
-                Chat? chat = _chatService.GetChatById(chatId);
-                ChatUser? receiver = _chatUserService.GetUser(receiverId);
-                
-                if (chat != null && receiver != null)
-                {
-                    chat.ChatUsers.Add(receiver);
-                    await _chatDbContext.SaveChangesAsync();
-                    
-                    // Notify all clients
-                    await Clients.All.SendAsync("InvitationAccepted", new { ChatId = chatId, UserId = receiverId });
-                }
+                _logger.LogInformation($"invitation accepted");
+                await Clients.Group($"user-{invitationDto.ReceiverId}").SendAsync("InvitationAccepted", newChat);
             }
-            */
+            else
+            {
+                _logger.LogError("error accepting invitation");
+                await Clients.Caller.SendAsync("Error", new { message = "Failed to accept invitation" });
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError($"Error accepting invitation: {ex.Message}");
-            await Clients.Caller.SendAsync("Error", new { message = "Failed to accept invitation", error = ex.Message });
         }
     }
 
