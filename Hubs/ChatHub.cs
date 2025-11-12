@@ -27,6 +27,18 @@ public class ChatHub : Hub
         _invitationService = invitationService;
     }
 
+    public async Task AddNotificationUser(ChatUserDto chatUserDto)
+    {
+        string userGroupName = $"user-{chatUserDto.Id}";
+        await Groups.AddToGroupAsync(Context.ConnectionId, userGroupName);
+    }
+
+    public async Task RemoveNotificationUser(ChatUserDto chatUserDto)
+    {
+        string userGroupName = $"user-{chatUserDto.Id}";
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, userGroupName);
+    }
+
     /// <summary>
     /// Creates a new chat and sends invitations to specified users.
     /// Broadcasts the new chat to all connected clients.
@@ -50,7 +62,7 @@ public class ChatHub : Hub
                 {
                     invitation.ChatId = createdChat.Id;
                     await _invitationService.AddInvitation(invitation);
-                    await Clients.User(invitation.ReceiverId.ToString()).SendAsync("IncomingInvitation", invitation);
+                    await Clients.Group($"user-{invitation.ReceiverId}").SendAsync("IncomingInvitation", invitation);
                 }
 
                 _logger.LogInformation($"Added {invitations.Count} invitations for chat {createdChat.Id}");

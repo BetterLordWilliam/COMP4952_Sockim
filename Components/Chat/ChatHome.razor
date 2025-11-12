@@ -136,6 +136,7 @@ else
             if (_messageHubConnection.State == HubConnectionState.Disconnected)
                 await _messageHubConnection.StartAsync();
 
+            await _chatHubConnection.SendAsync("AddNotificationUser", _user.Id);
             await _chatHubConnection.SendAsync("RetrieveChats", _user.Id);
             await _invitationHubConnection.SendAsync("RetrieveInvitations", _user.Id);
         }
