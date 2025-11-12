@@ -15,10 +15,8 @@ public class ChatMessage
     public DateTime MessageDateTime { get; set; }
     public string MessageContent { get; set; } = string.Empty;
     public int ChatId { get; set; }
-    [JsonIgnore]
     public Chat Chat { get; set; } = null!;
     public int ChatUserId { get; set; }
-    [JsonIgnore]
     public ChatUser ChatUser { get; set; } = null!;
 
     public override string ToString()
