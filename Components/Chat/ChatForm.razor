@@ -7,7 +7,6 @@
 @using Microsoft.Build.Framework
 @using COMP4952_Sockim.Data
 @using COMP4952_Sockim.Models
-@using Microsoft.DotNet.Scaffolding.Shared.Messaging
 @using System.Security.Claims
 
 @rendermode InteractiveServer
@@ -15,32 +14,71 @@
 @inject IJSRuntime JSRuntime
 @inject UserManager<ChatUser> UserManager
 @inject NavigationManager NavManager
-@inject AuthenticationStateProvider ASP
-@inject MessagesService MessagesService
 
 <div class="chat-container">
-    <div class="message-list-wrapper" @ref="_messageListWrapper">
-        <ul class="message-list">
-            @if (Messages is not null)
-            {
-                @foreach (ChatMessageDto message in _messages)
+    <div class="chat-header">
+        <h2>@ChatDto.ChatName</h2>
+        @if (User?.Id == ChatDto.ChatOwnerId)
+        {
+            <div class="owner-controls">
+                <p><em>You are the chat owner</em></p>
+            </div>
+        }
+    </div>
+
+    <div class="chat-content">
+        <div class="message-list-wrapper" @ref="_messageListWrapper">
+            <ul class="message-list">
+                @if (Messages is not null)
+                {
+                    @foreach (ChatMessageDto message in _messages)
+                    {
+                        <li>
+                            <span><b>@message.SenderEmail</b>, <b>@message.MessageDateTime</b></span>
+                            <p>@message.MessageContent</p>
+                        </li>
+                    }
+                }
+            </ul>
+        </div>
+
+        <div class="input-controls">
+            <div class="form-group">
+                <label>
+                    Message: <input @bind="_message" />
+                </label>
+            </div>
+            <button @onclick="Send">Send</button>
+        </div>
+    </div>
+
+    <div class="members-panel">
+        <h3>Members</h3>
+        @if (_chatMembers != null && _chatMembers.Count > 0)
+        {
+            <ul class="members-list">
+                @foreach (var member in _chatMembers)
                 {
                     <li>
-                        <span><b>@message.SenderEmail</b>, <b>@message.MessageDateTime</b></span>
-                        <p>@message.MessageContent</p>
+                        <span>@member.Email</span>
+                        @if (User?.Id == ChatDto.ChatOwnerId && member.Id != ChatDto.ChatOwnerId)
+                        {
+                            <button type="button" class="btn-remove" @onclick="() => RemoveMember(member.Id)" title="Remove member">✕</button>
+                        }
                     </li>
                 }
+            </ul>
+        }
+
+        <div class="invite-section">
+            <h4>Invite Member</h4>
+            <input type="email" @bind="_inviteEmail" placeholder="Enter email address" />
+            <button @onclick="InviteMember">Invite</button>
+            @if (!string.IsNullOrEmpty(_inviteStatus))
+            {
+                <p class="invite-status">@_inviteStatus</p>
             }
-        </ul>
-    </div>
-    <div class="input-controls">
-        <div class="form-group">
-            <br />
-            <label>
-                Message: <input @bind="_message" />
-            </label>
         </div>
-        <button @onclick="Send">Send</button>
     </div>
 </div>
 
@@ -52,13 +90,18 @@
     [Parameter]
     public HubConnection MessageHubConnection { get; set; } = null!;
     [Parameter]
+    public HubConnection? InvitationHubConnection { get; set; }
+    [Parameter]
     public List<ChatMessageDto>? Messages { get; set; }
     [Parameter]
     public bool Disabled { get; set; } = true;
 
     private ElementReference _messageListWrapper;
     private List<ChatMessageDto> _messages = [];
+    private List<ChatUserDto> _chatMembers = [];
     private string _message = string.Empty;
+    private string _inviteEmail = string.Empty;
+    private string _inviteStatus = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -66,10 +109,22 @@
         {
             MessageHubConnection.On<object>("UserJoined", async (object info) => {
                 Console.WriteLine($"User join info {info}");
+                await LoadChatMembers();
             });
 
             MessageHubConnection.On<object>("UserLeft", async (object info) => {
                 Console.WriteLine($"User left info {info}");
+                await LoadChatMembers();
+            });
+
+            MessageHubConnection.On<object>("MemberJoined", async (object info) => {
+                Console.WriteLine($"Member joined {info}");
+                await LoadChatMembers();
+            });
+
+            MessageHubConnection.On<object>("MemberRemoved", async (object info) => {
+                Console.WriteLine($"Member removed {info}");
+                await LoadChatMembers();
             });
 
             MessageHubConnection.On<ChatMessageDto>("ReceiveMessage", (ChatMessageDto message) =>
@@ -83,9 +138,53 @@
                 _messages = messages.ToList();
                 InvokeAsync(StateHasChanged);
             });
+
             await MessageHubConnection.SendAsync("JoinChat", ChatDto.Id, User.Id);
             await MessageHubConnection.SendAsync("GetChatHistory", ChatDto.Id);
+            await LoadChatMembers();
         }
+
+        if (InvitationHubConnection is not null)
+        {
+            InvitationHubConnection.On<object>("InvitationSent", (object info) => {
+                _inviteStatus = "Invitation sent successfully!";
+                _inviteEmail = string.Empty;
+                InvokeAsync(StateHasChanged);
+            });
+
+            InvitationHubConnection.On<object>("Error", (object errorInfo) => {
+                _inviteStatus = "Error sending invitation";
+                InvokeAsync(StateHasChanged);
+            });
+
+            InvitationHubConnection.On<object>("RemovedFromChat", (object info) => {
+                Console.WriteLine("You have been removed from the chat");
+                NavManager.NavigateTo("/");
+            });
+        }
+    }
+
+    /// <summary>
+    /// Load chat members from the chat.
+    /// </summary>
+    private async Task LoadChatMembers()
+    {
+        // For now, we'll populate from the chat DTO
+        // In a real app, you'd call a service to get current members
+        _chatMembers = new List<ChatUserDto>
+        {
+            new ChatUserDto { Id = ChatDto.ChatOwnerId, Email = ChatDto.ChatOwnerEmail }
+        };
+
+        if (ChatDto.InvitedEmails != null)
+        {
+            foreach (var email in ChatDto.InvitedEmails)
+            {
+                _chatMembers.Add(new ChatUserDto { Id = 0, Email = email });
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task ScrollToBottom()
@@ -124,6 +223,53 @@
         catch (Exception ex)
         {
             Console.WriteLine($"Error sending message: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Invite a user to the chat by email.
+    /// Calls InvitationHub to create the invitation.
+    /// </summary>
+    private async Task InviteMember()
+    {
+        if (string.IsNullOrWhiteSpace(_inviteEmail) || InvitationHubConnection is null)
+        {
+            _inviteStatus = "Please enter a valid email address";
+            return;
+        }
+
+        try
+        {
+            _inviteStatus = "Sending invitation...";
+            await InvitationHubConnection.SendAsync("InviteUserToChat", ChatDto.Id, User.Id, _inviteEmail);
+        }
+        catch (Exception ex)
+        {
+            _inviteStatus = $"Error: {ex.Message}";
+            Console.WriteLine($"Error inviting member: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Remove a member from the chat.
+    /// Only the chat owner can remove members.
+    /// Calls InvitationHub to remove the user.
+    /// </summary>
+    private async Task RemoveMember(int memberId)
+    {
+        if (InvitationHubConnection is null)
+        {
+            Console.WriteLine("InvitationHub connection not available");
+            return;
+        }
+
+        try
+        {
+            await InvitationHubConnection.SendAsync("RemoveUserFromChat", ChatDto.Id, User.Id, memberId);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error removing member: {ex.Message}");
         }
     }
 

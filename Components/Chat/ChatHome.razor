@@ -40,9 +40,10 @@
 else
 {
     <button type="button" @onclick="CloseChat">X</button>
-    @if (_user is not null && _messageHubConnection is not null)
+    @if (_user is not null && _messageHubConnection is not null && _invitationHubConnection is not null)
     {
         <ChatForm   MessageHubConnection="@_messageHubConnection"
+                    InvitationHubConnection="@_invitationHubConnection"
                     ChatDto="@_chat"
                     Messages="@_messages"
                     User="@_user" />
@@ -110,6 +111,7 @@ else
             });
 
             _chatHubConnection.On<ChatInvitationDto>("IncomingInvitation", (ChatInvitationDto invitation) => {
+                Console.WriteLine("CLIENT invitation received");
                 _invitations.Add(invitation);
                 InvokeAsync(StateHasChanged);
             });
@@ -124,9 +126,21 @@ else
                 InvokeAsync(StateHasChanged);
             });
 
+            _invitationHubConnection.On<ChatInvitationDto>("IncomingInvitation", (ChatInvitationDto invitation) => {
+                _invitations.Add(invitation);
+                InvokeAsync(StateHasChanged);
+            });
+
             _invitationHubConnection.On<ChatInvitationDto[]>("RetrievedInvitations", (ChatInvitationDto[] invitations) =>
             {
                 _invitations = invitations.ToList();
+                InvokeAsync(StateHasChanged);
+            });
+
+            _invitationHubConnection.On<object>("InvitationRejected", (object data) =>
+            {
+                // Invitation was rejected - it's already removed server-side
+                // Invitation was already removed from UI in ChatInvitations component
                 InvokeAsync(StateHasChanged);
             });
 

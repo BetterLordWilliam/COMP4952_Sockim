@@ -10,10 +10,16 @@ using Microsoft.Extensions.DependencyInjection;
 using COMP4952_Sockim.Components.Account;
 using COMP4952_Sockim.Services;
 using Microsoft.DotNet.Scaffolding.Shared.Messaging;
+using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 // var connectionString = builder.Configuration.GetConnectionString("ChatDbContext") ?? throw new InvalidOperationException("Connection string 'ChatDbContextConnection' not found.");
 var connectionString = builder.Configuration.GetConnectionString("ChatDbContextMySql") ?? throw new InvalidOperationException("Connection string was really bad");
+
+// Add logging configuration - disable EF Core verbose logging
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole()
+    .AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

@@ -146,4 +146,83 @@ public class ChatService
                 .ToList()
         };
     }
+
+    /// <summary>
+    /// Gets all chat members (non-tracking) including owner.
+    /// Useful for displaying members and managing who can remove users.
+    /// </summary>
+    public async Task<ChatUserDto[]> GetChatMembers(int chatId)
+    {
+        try
+        {
+            Chat? chat = await _chatDbContext.Chats
+                .Include(c => c.ChatUsers)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == chatId);
+
+            if (chat == null)
+            {
+                _logger.LogWarning($"Chat {chatId} not found when retrieving members");
+                return Array.Empty<ChatUserDto>();
+            }
+
+            return chat.ChatUsers
+                .Select(u => new ChatUserDto
+                {
+                    Id = u.Id,
+                    Email = u.Email ?? string.Empty
+                })
+                .ToArray();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error retrieving chat members for chat {chatId}: {ex.Message}");
+            return Array.Empty<ChatUserDto>();
+        }
+    }
+
+    /// <summary>
+    /// Removes a user from a chat.
+    /// Can only be called if the requester is the chat owner (business logic in hub).
+    /// </summary>
+    public async Task<bool> RemoveUserFromChat(int chatId, int userId)
+    {
+        try
+        {
+            Chat? chat = await _chatDbContext.Chats
+                .Include(c => c.ChatUsers)
+                .FirstOrDefaultAsync(c => c.Id == chatId);
+
+            if (chat == null)
+            {
+                _logger.LogError($"Chat {chatId} not found");
+                return false;
+            }
+
+            ChatUser? user = chat.ChatUsers.FirstOrDefault(u => u.Id == userId);
+            if (user == null)
+            {
+                _logger.LogWarning($"User {userId} not found in chat {chatId}");
+                return false;
+            }
+
+            // Don't allow removing the owner
+            if (chat.ChatOwnerId == userId)
+            {
+                _logger.LogWarning($"Cannot remove chat owner {userId} from chat {chatId}");
+                return false;
+            }
+
+            chat.ChatUsers.Remove(user);
+            await _chatDbContext.SaveChangesAsync();
+
+            _logger.LogInformation($"User {userId} removed from chat {chatId}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error removing user from chat: {ex.Message}");
+            return false;
+        }
+    }
 }

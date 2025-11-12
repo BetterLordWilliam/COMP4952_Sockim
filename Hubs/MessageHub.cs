@@ -7,10 +7,10 @@ namespace COMP4952_Sockim.Hubs;
 
 public class MessageHub : Hub
 {
-    ILogger<MessageHub> _logger;
-    MessagesService _messagesService;
-    ChatService _chatService;
-    ChatUserService _chatUserService;
+    private readonly ILogger<MessageHub> _logger;
+    private readonly MessagesService _messagesService;
+    private readonly ChatService _chatService;
+    private readonly ChatUserService _chatUserService;
 
     public MessageHub(
         ILogger<MessageHub> logger,
