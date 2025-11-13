@@ -7,20 +7,38 @@
 
 @implements IAsyncDisposable
 
-@if(User is not null)
-{
-    @foreach(ChatInvitationDto invitation in Invitations)
+
+<div style="margin-right: auto;">
+    <button class="btn-remove" @onclick="ToggleModal">Show Invitations (@Invitations.Count)</button>
+    @if (_showModal)
     {
-        <div class="invitation-item">
-            <span><b>@invitation.ChatName</b> - invited by @invitation.SenderEmail</span>
-            <button type="button" class="btn-accept" @onclick="() => AcceptInvitation(invitation)" title="Accept invitation">O</button>
-            <button type="button" class="btn-reject" @onclick="() => RejectInvitation(invitation)" title="Reject invitation">X</button>
+        <div class="modal">
+            <div class="modal-content invitation-modal-content">
+                <h3>Invitations</h3>
+                @if (User is not null && Invitations.Count > 0)
+                {
+                    @foreach(ChatInvitationDto invitation in Invitations)
+                    {
+                        <div class="invitation-item">
+                            <span class="invitation-meta"><b>@invitation.ChatName</b> - invited by @invitation.SenderEmail</span>
+                            <button type="button" class="btn-accept" @onclick="() => AcceptInvitation(invitation)" title="Accept invitation">Accept</button>
+                            <button type="button" class="btn-reject" @onclick="() => RejectInvitation(invitation)" title="Reject invitation">Reject</button>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p><em>No pending invitations</em></p>
+                }
+                <button class="btn-remove" @onclick="ToggleModal">Close</button>
+            </div>
         </div>
     }
-    @if (Invitations.Count == 0)
-    {
-        <p><em>No pending invitations</em></p>
-    }
+</div>
+
+@code {
+    private bool _showModal = false;
+    private void ToggleModal() => _showModal = !_showModal;
 }
 
 @code {

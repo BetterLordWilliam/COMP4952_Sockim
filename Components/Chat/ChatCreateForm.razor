@@ -14,44 +14,55 @@
 @inject NavigationManager NavManager
 @inject IJSRuntime JSRuntime
 
-<h3>ChatCreateForm</h3>
 
-<form @onsubmit="OnChatCreateSubmit">
-    <label>
-        Chat name:
-        <input type="text" @bind-value="_chatName"></input>
-    </label>
-    <br />
-    <label>
-        User emails (space seperated):
-        @if(_isBadEmail)
-        {
-            <div>
-                @_badEmailMessage: @_badEmail
+<div class="modal">
+    <div class="modal-content chat-create-modal-content">
+        <h3>Create a New Chat</h3>
+        <form @onsubmit="OnChatCreateSubmit">
+            <div class="form-group">
+                <label for="chat-name">Chat name:</label>
+                <input id="chat-name" type="text" @bind-value="_chatName" class="chat-input" />
             </div>
-        }
-        <div>
-            @{
-                int i = 0;
-                foreach (var email in _emails)
+            <div class="form-group">
+                <label for="user-emails">User emails (space separated):</label>
+                @if(_isBadEmail)
                 {
-                    if (i == 0) { <span>@email</span> } else { <span>, @email</span> }
-                    <button type="button" @onclick="() => RemoveEmail(email)">X</button>
-                    i++;
+                    <div class="error-message">
+                        @_badEmailMessage: @_badEmail
+                    </div>
                 }
-            }
+                <div class="email-list">
+                    @{
+                        int i = 0;
+                        foreach (var email in _emails)
+                        {
+                            if (i == 0) { <span>@email</span> } else { <span>, @email</span> }
+                            <button type="button" class="btn-remove" @onclick="() => RemoveEmail(email)" title="Remove email">Remove</button>
+                            i++;
+                        }
+                    }
+                </div>
+                <input  id="user-emails"
+                        type="text"
+                        class="chat-input"
+                        placeholder="Add user email"
+                        @bind-value=_newEmail
+                        @bind-value:event="oninput"
+                        @onkeydown="AddEmail" />
+            </div>
+            <button type="submit" class="send-btn">Create</button>
+        </form>
+        <div style="display:flex;justify-content:flex-end;">
+            <button class="btn-remove close-btn" type="button" @onclick="OnClose">Close</button>
         </div>
-        <input  type="text"
-                placeholder=""
-                @bind-value=_newEmail
-                @bind-value:event="oninput"
-                @onkeydown="AddEmail" />
-    </label>
-    <br />
-    <button type="submit">
-        Submit
-    </button>
-</form>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+    // ...existing code...
+}
 
 @code {
     [Parameter]

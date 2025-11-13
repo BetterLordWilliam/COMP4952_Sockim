@@ -2,16 +2,15 @@
 @using COMP4952_Sockim.Models
 @using Microsoft.AspNetCore.SignalR.Client
 
-@if (User is not null
-    && Chats is not null
-    && ChatHubConnection is not null)
+
+@if (User is not null && Chats is not null && ChatHubConnection is not null)
 {
-    @foreach(ChatDto chat in Chats)
-    {
-        <button type="button" @onclick="() => OpenChat(chat)">@chat.ChatName</button>
-        <hr />
-        <br />
-    }
+    <div class="chat-list">
+        @foreach(ChatDto chat in Chats)
+        {
+            <button type="button" @onclick="() => OpenChat(chat)">@chat.ChatName</button>
+        }
+    </div>
 }
 
 @code {
