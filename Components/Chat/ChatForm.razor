@@ -71,6 +71,8 @@
                 }
             </ul>
         }
+        <br />
+        <button type="button" @onclick="() => RemoveMember(User.Id)" disabled="@_isOwner">Leave</button>
 
         <div class="invite-section">
             <h4>Invite Member</h4>
@@ -106,6 +108,7 @@
     private string _message = string.Empty;
     private string _inviteEmail = string.Empty;
     private string _inviteStatus = string.Empty;
+    private bool _isOwner => User.Id == ChatDto.ChatOwnerId;
 
     protected override async Task OnInitializedAsync()
     {

@@ -206,14 +206,6 @@ public class ChatHub : Hub
 
             ChatDto? chatDto = _chatService.ConvertToDto(chat);
 
-            // Verify requester is the owner
-            if (chat.ChatOwnerId != requesterId)
-            {
-                _logger.LogWarning($"User {requesterId} is not the owner of chat {chatId}");
-                await Clients.Caller.SendAsync("Error", new { message = "Only chat owner can remove members" });
-                return;
-            }
-
             // Prevent removing the owner
             if (chat.ChatOwnerId == userIdToRemove)
             {
