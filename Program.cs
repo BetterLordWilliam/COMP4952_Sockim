@@ -115,7 +115,6 @@ app.MapRazorComponents<App>()
 app.MapHub<TestChatHub>("chathubtest");
 app.MapHub<ChatHub>("chathub");
 app.MapHub<MessageHub>("messagehub");
-app.MapHub<InvitationHub>("invitationhub");
 
 app.MapAdditionalIdentityEndpoints();;
 

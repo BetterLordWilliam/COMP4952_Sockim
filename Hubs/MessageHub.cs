@@ -38,7 +38,7 @@ public class MessageHub : Hub
 
             await Clients.Group(groupName).SendAsync("UserJoined", new { ChatId = chatId, UserId = userId });
 
-            _logger.LogInformation($"User {userId} added to chat group {groupName}");
+            _logger.LogInformation($"User {userId} joined chat group {groupName}");
         }
         catch (Exception ex)
         {
@@ -54,7 +54,7 @@ public class MessageHub : Hub
     {
         try
         {
-            _logger.LogInformation($"User {userId} leaving chat {chatId}");
+            _logger.LogInformation($"User {userId} disconnecting from chat group {chatId}");
 
             string groupName = $"chat-{chatId}";
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
@@ -62,7 +62,7 @@ public class MessageHub : Hub
             // Notify others in the chat
             await Clients.Group(groupName).SendAsync("UserLeft", new { ChatId = chatId, UserId = userId });
 
-            _logger.LogInformation($"User {userId} removed from chat group {groupName}");
+            _logger.LogInformation($"User {userId} disconnected from chat group {groupName}");
         }
         catch (Exception ex)
         {
@@ -117,25 +117,6 @@ public class MessageHub : Hub
         {
             _logger.LogError($"Error getting chat history: {ex.Message}");
             await Clients.Caller.SendAsync("Error", new { message = "Failed to load chat history", error = ex.Message });
-        }
-    }
-
-    public async Task GetChatMembers(int chatId)
-    {
-        try
-        {
-            _logger.LogInformation($"retrieving members for chat {chatId}");
-
-            ChatUserDto[] users = await _chatService.GetChatMembers(chatId);
-
-            await Clients.Caller.SendAsync("RetrievedUsers", users);
-
-            _logger.LogInformation($"send {users.Length} messages to called for chat {chatId}");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError($"error getting members from the chat: {ex.Message}");
-            await Clients.Caller.SendAsync("Error", new { message = "Failed to load chat members", error = ex.Message });
         }
     }
 

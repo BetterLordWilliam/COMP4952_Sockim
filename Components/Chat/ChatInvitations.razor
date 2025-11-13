@@ -7,7 +7,7 @@
 
 @implements IAsyncDisposable
 
-@if(User is not null && InvitationHubConnection is not null)
+@if(User is not null)
 {
     @foreach(ChatInvitationDto invitation in Invitations)
     {
@@ -25,7 +25,7 @@
 
 @code {
     [Parameter]
-    public HubConnection? InvitationHubConnection { get; set; }
+    public HubConnection? ChatHubConnection { get; set; }
     [Parameter]
     public ChatUser? User { get; set; }
     [Parameter]
@@ -35,15 +35,16 @@
     /// Accepts an invitation and removes it from the pending list.
     /// Calls InvitationHub.AcceptInvitation which will orchestrate adding user to chat.
     /// </summary>
+    /// <summary>
+    /// Accepts an invitation and sends it to ChatHub for processing.
+    /// </summary>
     private async Task AcceptInvitation(ChatInvitationDto invitationDto)
     {
-        if (InvitationHubConnection is not null && invitationDto is not null)
+        if (ChatHubConnection is not null && invitationDto is not null)
         {
             try
             {
-                invitationDto.Accepted = true;
-                await InvitationHubConnection.SendAsync("AcceptInvitation", invitationDto);
-                // Remove from UI list immediately for better UX
+                await ChatHubConnection.SendAsync("AcceptInvitation", invitationDto);
                 Invitations.Remove(invitationDto);
                 await InvokeAsync(StateHasChanged);
             }
@@ -55,34 +56,32 @@
     }
 
     /// <summary>
-    /// Rejects an invitation and removes it from the pending list.
-    /// Calls InvitationHub.RejectInvitation to delete the invitation.
+    /// Rejects an invitation and sends it to ChatHub for processing.
     /// </summary>
     private async Task RejectInvitation(ChatInvitationDto invitationDto)
     {
-        if (InvitationHubConnection is not null && invitationDto is not null)
+        if (ChatHubConnection is not null && invitationDto is not null)
         {
             try
             {
-                await InvitationHubConnection.SendAsync(
+                await ChatHubConnection.SendAsync(
                     "RejectInvitation",
                     invitationDto.SenderId,
                     invitationDto.ReceiverId,
                     invitationDto.ChatId);
-                
-                // Remove from UI list immediately for better UX
                 Invitations.Remove(invitationDto);
                 await InvokeAsync(StateHasChanged);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"Error rejecting invitation: {ex.Message}");
+                Console.WriteLine($"Error rejecting invitation");
             }
         }
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         // Cleanup if needed
+        return ValueTask.CompletedTask;
     }
 }

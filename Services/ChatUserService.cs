@@ -1,5 +1,6 @@
 using System;
 using COMP4952_Sockim.Data;
+using COMP4952_Sockim.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace COMP4952_Sockim.Services;
@@ -81,6 +82,27 @@ public class ChatUserService
         {
             _logger.LogError($"operation to get user with emails failed: {ex.Message}");
 
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Converts a chat user entity into a data transfer object.
+    /// </summary>
+    /// <param name="chatUser"></param>
+    /// <returns></returns>
+    public ChatUserDto? ConvertToDto(ChatUser? chatUser)
+    {
+        if (chatUser is not null)
+        {
+            return new ChatUserDto()
+            {
+                Id = chatUser.Id,
+                Email = chatUser.Email
+            };
+        }
+        else
+        {
             return null;
         }
     }

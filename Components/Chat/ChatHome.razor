@@ -28,7 +28,7 @@
     }
 
     <p>Invitations</p>
-    <ChatInvitations    InvitationHubConnection="@_invitationHubConnection"
+    <ChatInvitations    ChatHubConnection="@_chatHubConnection"
                         Invitations="@_invitations"
                         User="@_user" />
     <p>Chats</p>
@@ -40,10 +40,11 @@
 else
 {
     <button type="button" @onclick="CloseChat">X</button>
-    @if (_user is not null && _messageHubConnection is not null && _invitationHubConnection is not null)
+    @if (_user is not null && _messageHubConnection is not null && _chatHubConnection is not null)
     {
         <ChatForm   MessageHubConnection="@_messageHubConnection"
-                    InvitationHubConnection="@_invitationHubConnection"
+                    ChatHubConnection="@_chatHubConnection"
+                    CloseChat="@CloseChat"
                     ChatDto="@_chat"
                     Messages="@_messages"
                     User="@_user" />
@@ -110,34 +111,23 @@ else
                 InvokeAsync(StateHasChanged);
             });
 
-            _chatHubConnection.On<ChatInvitationDto>("IncomingInvitation", (ChatInvitationDto invitation) => {
-                Console.WriteLine("CLIENT invitation received");
-                _invitations.Add(invitation);
+            _chatHubConnection.On<ChatInvitationDto>("IncomingInvitation", (ChatInvitationDto) => {
+                _invitations.Add(ChatInvitationDto);
                 InvokeAsync(StateHasChanged);
             });
 
-            _invitationHubConnection = new HubConnectionBuilder()
-                .WithUrl(NavManager.ToAbsoluteUri("/invitationhub"))
-                .WithAutomaticReconnect()
-                .Build();
-
-            _invitationHubConnection.On<ChatDto>("InvitationAccepted", (ChatDto newChat) => {
+            _chatHubConnection.On<ChatDto>("InvitationAccepted", (ChatDto newChat) => {
                 _chats.Add(newChat);
                 InvokeAsync(StateHasChanged);
             });
 
-            _invitationHubConnection.On<ChatInvitationDto>("IncomingInvitation", (ChatInvitationDto invitation) => {
-                _invitations.Add(invitation);
-                InvokeAsync(StateHasChanged);
-            });
-
-            _invitationHubConnection.On<ChatInvitationDto[]>("RetrievedInvitations", (ChatInvitationDto[] invitations) =>
+            _chatHubConnection.On<ChatInvitationDto[]>("RetrievedInvitations", (ChatInvitationDto[] invitations) =>
             {
                 _invitations = invitations.ToList();
                 InvokeAsync(StateHasChanged);
             });
 
-            _invitationHubConnection.On<object>("InvitationRejected", (object data) =>
+            _chatHubConnection.On<object>("InvitationRejected", (object data) =>
             {
                 // Invitation was rejected - it's already removed server-side
                 // Invitation was already removed from UI in ChatInvitations component
@@ -151,15 +141,12 @@ else
 
             if (_chatHubConnection.State == HubConnectionState.Disconnected)
                 await _chatHubConnection.StartAsync();
-            if (_invitationHubConnection.State == HubConnectionState.Disconnected)
-                await _invitationHubConnection.StartAsync();
             if (_messageHubConnection.State == HubConnectionState.Disconnected)
                 await _messageHubConnection.StartAsync();
 
-            await _chatHubConnection.SendAsync("AddNotificationUser", _user.Id);
+            await _chatHubConnection.SendAsync("AddChatUser", _user.Id);
             await _chatHubConnection.SendAsync("RetrieveChats", _user.Id);
-            await _invitationHubConnection.SendAsync("AddInvitationUser", _user.Id);
-            await _invitationHubConnection.SendAsync("RetrieveInvitations", _user.Id);
+            await _chatHubConnection.SendAsync("RetrieveInvitations", _user.Id);
         }
     }
 
@@ -184,13 +171,5 @@ else
     {
         _chatOpen = false;
         StateHasChanged();
-    }
-
-    private void AcceptInvitation(ChatInvitationDto invitationDto)
-    {
-    }
-
-    private void DeclineInvitation(ChatInvitationDto invitationDto)
-    {
     }
 }

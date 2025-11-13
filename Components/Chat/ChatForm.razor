@@ -14,6 +14,7 @@
 @inject IJSRuntime JSRuntime
 @inject UserManager<ChatUser> UserManager
 @inject NavigationManager NavManager
+@inject ChatUserService ChatUserService
 @inject ChatService ChatService
 
 <div class="chat-container">
@@ -91,11 +92,13 @@
     [Parameter]
     public HubConnection MessageHubConnection { get; set; } = null!;
     [Parameter]
-    public HubConnection? InvitationHubConnection { get; set; }
+    public HubConnection? ChatHubConnection { get; set; }
     [Parameter]
     public List<ChatMessageDto>? Messages { get; set; }
     [Parameter]
     public bool Disabled { get; set; } = true;
+    [Parameter]
+    public EventCallback CloseChat { get; set; }
 
     private ElementReference _messageListWrapper;
     private List<ChatMessageDto> _messages = [];
@@ -106,28 +109,43 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (ChatHubConnection is not null)
+        {
+            ChatHubConnection.On<ChatUserDto>("MemberJoined", (ChatUserDto user) => {
+                Console.WriteLine("CLIENT RECIEVES NEW MEMVER");
+                _chatMembers.Add(user);
+                InvokeAsync(StateHasChanged);
+            });
+
+            ChatHubConnection.On<object>("MemberRemoved", (object user) => {
+
+            });
+
+            ChatHubConnection.On<ChatUserDto[]>("RetrievedUsers", (ChatUserDto[] users) => {
+                _chatMembers = users.ToList();
+                InvokeAsync(StateHasChanged);
+            });
+
+            await ChatHubConnection.SendAsync("ConnectToChatGroup", ChatDto.Id);
+            await ChatHubConnection.SendAsync("GetChatMembers", ChatDto.Id);
+        }
+
         if (MessageHubConnection is not null)
         {
+            @* // User comes online
             MessageHubConnection.On<ChatUserDto>("UserJoined", (ChatUserDto user) => {
             });
 
+            // User goes offline
             MessageHubConnection.On<ChatUserDto>("UserLeft", (ChatUserDto user) => {
             });
 
-            MessageHubConnection.On<ChatUserDto>("MemberJoined", (ChatUserDto user) => {
-            });
-
             MessageHubConnection.On<ChatUserDto>("MemberRemoved", (ChatUserDto user) => {
-            });
+            }); *@
 
             MessageHubConnection.On<ChatMessageDto>("ReceiveMessage", (ChatMessageDto message) =>
             {
                 _messages.Add(message);
-                InvokeAsync(StateHasChanged);
-            });
-
-            MessageHubConnection.On<ChatUserDto[]>("RetrievedUsers", (ChatUserDto[] users) => {
-                _chatMembers = users.ToList();
                 InvokeAsync(StateHasChanged);
             });
 
@@ -139,26 +157,7 @@
 
             await MessageHubConnection.SendAsync("JoinChat", ChatDto.Id, User.Id);
             await MessageHubConnection.SendAsync("GetChatHistory", ChatDto.Id);
-            await MessageHubConnection.SendAsync("GetChatMembers", ChatDto.Id);
-        }
 
-        if (InvitationHubConnection is not null)
-        {
-            InvitationHubConnection.On<object>("InvitationSent", (object info) => {
-                _inviteStatus = "Invitation sent successfully!";
-                _inviteEmail = string.Empty;
-                InvokeAsync(StateHasChanged);
-            });
-
-            InvitationHubConnection.On<object>("Error", (object errorInfo) => {
-                _inviteStatus = "Error sending invitation";
-                InvokeAsync(StateHasChanged);
-            });
-
-            InvitationHubConnection.On<object>("RemovedFromChat", (object info) => {
-                Console.WriteLine("You have been removed from the chat");
-                NavManager.NavigateTo("/");
-            });
         }
     }
 
@@ -203,11 +202,11 @@
 
     /// <summary>
     /// Invite a user to the chat by email.
-    /// Calls InvitationHub to create the invitation.
+    /// Calls ChatHub to create the invitation.
     /// </summary>
     private async Task InviteMember()
     {
-        if (string.IsNullOrWhiteSpace(_inviteEmail) || InvitationHubConnection is null)
+        if (string.IsNullOrWhiteSpace(_inviteEmail) || ChatHubConnection is null)
         {
             _inviteStatus = "Please enter a valid email address";
             return;
@@ -215,8 +214,7 @@
 
         try
         {
-            _inviteStatus = "Sending invitation...";
-            await InvitationHubConnection.SendAsync("InviteUserToChat", ChatDto.Id, User.Id, _inviteEmail);
+            await ChatHubConnection.SendAsync("InviteUserToChat", ChatDto.Id, User.Id, _inviteEmail);
         }
         catch (Exception ex)
         {
@@ -228,19 +226,19 @@
     /// <summary>
     /// Remove a member from the chat.
     /// Only the chat owner can remove members.
-    /// Calls InvitationHub to remove the user.
+    /// Calls ChatHub to remove the user.
     /// </summary>
     private async Task RemoveMember(int memberId)
     {
-        if (InvitationHubConnection is null)
+        if (ChatHubConnection is null)
         {
-            Console.WriteLine("InvitationHub connection not available");
+            Console.WriteLine("ChatHub connection not available");
             return;
         }
 
         try
         {
-            await InvitationHubConnection.SendAsync("RemoveUserFromChat", ChatDto.Id, User.Id, memberId);
+            await ChatHubConnection.SendAsync("RemoveUserFromChat", ChatDto.Id, User.Id, memberId);
         }
         catch (Exception ex)
         {
@@ -250,6 +248,10 @@
 
     public async ValueTask DisposeAsync()
     {
+        if (ChatHubConnection is not null)
+        {
+            await ChatHubConnection.SendAsync("DisconnectToChatGroup", ChatDto.Id);
+        }
         if (MessageHubConnection is not null)
         {
             await MessageHubConnection.SendAsync("LeaveChat", ChatDto.Id, User.Id);
