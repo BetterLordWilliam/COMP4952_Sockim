@@ -112,13 +112,13 @@
         if (ChatHubConnection is not null)
         {
             ChatHubConnection.On<ChatUserDto>("MemberJoined", (ChatUserDto user) => {
-                Console.WriteLine("CLIENT RECIEVES NEW MEMVER");
                 _chatMembers.Add(user);
                 InvokeAsync(StateHasChanged);
             });
 
-            ChatHubConnection.On<object>("MemberRemoved", (object user) => {
-
+            ChatHubConnection.On<ChatDto, ChatUserDto>("MemberRemoved", (ChatDto chat, ChatUserDto chatUser) => {
+                _chatMembers.Remove(chatUser);
+                InvokeAsync(StateHasChanged);
             });
 
             ChatHubConnection.On<ChatUserDto[]>("RetrievedUsers", (ChatUserDto[] users) => {

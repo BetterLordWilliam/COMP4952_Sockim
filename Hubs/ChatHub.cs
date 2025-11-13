@@ -2,9 +2,7 @@ using System;
 using Microsoft.AspNetCore.SignalR;
 using COMP4952_Sockim.Data;
 using COMP4952_Sockim.Models;
-using MySqlX.XDevAPI;
 using COMP4952_Sockim.Services;
-using Microsoft.AspNetCore.Authorization;
 
 namespace COMP4952_Sockim.Hubs;
 
@@ -206,6 +204,8 @@ public class ChatHub : Hub
                 return;
             }
 
+            ChatDto? chatDto = _chatService.ConvertToDto(chat);
+
             // Verify requester is the owner
             if (chat.ChatOwnerId != requesterId)
             {
@@ -226,13 +226,16 @@ public class ChatHub : Hub
             bool removed = await _chatService.RemoveUserFromChat(chatId, userIdToRemove);
             if (removed)
             {
+                ChatUser? chatUser          = _chatUserService.GetUser(userIdToRemove);
+                ChatUserDto? chatUserDto    = _chatUserService.ConvertToDto(chatUser);
+
                 // Notify the removed user
                 await Clients.Group($"user-{userIdToRemove}")
-                    .SendAsync("RemovedFromChat", new { ChatId = chatId });
+                    .SendAsync("RemovedFromChat", chatDto);
 
                 // Notify chat members
                 await Clients.Group($"chat-{chatId}")
-                    .SendAsync("MemberRemoved", new { ChatId = chatId, UserId = userIdToRemove });
+                    .SendAsync("MemberRemoved", chatDto, chatUserDto);
 
                 _logger.LogInformation($"User {userIdToRemove} removed from chat {chatId}");
             }

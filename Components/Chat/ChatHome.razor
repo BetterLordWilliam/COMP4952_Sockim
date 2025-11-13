@@ -111,6 +111,12 @@ else
                 InvokeAsync(StateHasChanged);
             });
 
+            _chatHubConnection.On<ChatDto>("RemovedFromChat", (ChatDto chat) => {
+                if (_chatOpen)
+                    InvokeAsync(CloseChat);
+                _chats.Remove(chat);
+            });
+
             _chatHubConnection.On<ChatInvitationDto>("IncomingInvitation", (ChatInvitationDto) => {
                 _invitations.Add(ChatInvitationDto);
                 InvokeAsync(StateHasChanged);
