@@ -115,6 +115,7 @@ else
                 if (_chatOpen)
                     InvokeAsync(CloseChat);
                 _chats.Remove(chat);
+                InvokeAsync(StateHasChanged);
             });
 
             _chatHubConnection.On<ChatInvitationDto>("IncomingInvitation", (ChatInvitationDto) => {
