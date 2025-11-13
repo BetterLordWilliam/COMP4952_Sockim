@@ -28,7 +28,7 @@
                 }
                 else
                 {
-                    <p><em>No pending invitations</em></p>
+                    <p>No pending invitations</p>
                 }
                 <button class="btn-remove" @onclick="ToggleModal">Close</button>
             </div>
@@ -99,7 +99,6 @@
 
     public ValueTask DisposeAsync()
     {
-        // Cleanup if needed
         return ValueTask.CompletedTask;
     }
 }

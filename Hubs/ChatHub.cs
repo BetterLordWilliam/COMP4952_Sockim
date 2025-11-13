@@ -64,7 +64,6 @@ public class ChatHub : Hub
         {
             _logger.LogInformation($"Adding new chat: {chatDto.ChatName}");
 
-            // 1. Create the chat (pure CRUD)
             ChatDto? createdChat = await _chatService.CreateChat(chatDto);
             if (createdChat == null)
             {
@@ -73,7 +72,17 @@ public class ChatHub : Hub
                 return;
             }
 
-            // 2. Add invitations (pure CRUD)
+            bool success = await _invitationService.AddInvitations(invitations.ToArray());
+
+            if (success)
+            {
+                _logger.LogInformation($"Added {invitations.Count} invitations for chat {createdChat.Id}");
+            }
+            else
+            {
+                _logger.LogWarning($"Failed to add invitations {chatDto.ChatName}, {chatDto.Id}");
+            }
+
             if (invitations != null && invitations.Count > 0)
             {
                 foreach (var invitation in invitations)
@@ -91,14 +100,11 @@ public class ChatHub : Hub
                     }
                     else
                     {
-                        _logger.LogWarning($"Failed to add invitation for user {invitation.ReceiverId}");
                     }
                 }
 
-                _logger.LogInformation($"Added {invitations.Count} invitations for chat {createdChat.Id}");
             }
 
-            // 4. Confirm creation to caller
             await Clients.Caller.SendAsync("ChatCreated", createdChat);
             _logger.LogInformation($"Chat '{createdChat.ChatName}' created successfully");
         }

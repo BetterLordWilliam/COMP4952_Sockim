@@ -77,7 +77,6 @@ body {
 
 .chat-list-header {
     display:flex;
-    font-size:1.5rem;
     font-weight:700;
     margin-top: 1.0rem;
     margin-bottom: 1.0rem;
@@ -235,6 +234,7 @@ body {
     color: var(--primary);
 }
 
+/* invitaiton styles (invitation modal) */
 .invite-section {
     margin-top: 18px;
     display: flex;
@@ -273,8 +273,6 @@ body {
     font-weight: 500;
     margin-top: 4px;
 }
-
-/* --- Invitations --- */
 .invitation-item {
     background: var(--card-bg);
     border-radius: var(--border-radius);
