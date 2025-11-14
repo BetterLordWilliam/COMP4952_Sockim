@@ -97,6 +97,28 @@ public class MessageHub : Hub
     }
 
     /// <summary>
+    /// Updates a message in a chat.
+    /// </summary>
+    /// <param name="chatId"></param>
+    /// <param name="messageDto"></param>
+    /// <returns></returns>
+    public async Task EditMessage(ChatMessageDto messageDto)
+    {
+        try
+        {
+            _logger.LogInformation($"Message {messageDto.Id} edited in chat {messageDto.ChatId}");
+
+            await _messagesService.UpdateChatMessage(messageDto);
+            await Clients.Group($"chat-{messageDto.ChatId}").SendAsync("MessageUpdated", messageDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error updating message: {ex.Message}");
+            await Clients.Caller.SendAsync("Error", new { message = "failed to update message", error = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Get chat history (previous messages).
     /// Sends chat history only to the caller when they load the chat.
     /// </summary>

@@ -60,6 +60,35 @@ public class MessagesService
     }
 
     /// <summary>
+    /// Updates the chat message entity in the database.
+    /// </summary>
+    /// <param name="messageDto"></param>
+    /// <returns></returns>
+    public async Task<ChatMessageDto?> UpdateChatMessage(ChatMessageDto messageDto)
+    {
+        try
+        {
+            ChatMessage? chatMessage = await _chatDbContext.Messages.Where(c => c.Id == messageDto.Id).FirstOrDefaultAsync();
+
+            if (chatMessage is not null)
+            {
+                chatMessage.MessageContent = messageDto.MessageContent;
+                await _chatDbContext.SaveChangesAsync();
+                return messageDto;
+            } 
+            else
+            {
+                throw new Exception("No such message");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error while updating message: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Retrieves chat messages for a specific chat (non-tracking).
     /// Returns messages ordered by datetime (ascending).
     /// </summary>

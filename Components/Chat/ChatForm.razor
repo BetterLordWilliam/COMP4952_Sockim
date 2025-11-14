@@ -67,14 +67,28 @@
         <div class="chat-content">
             <div class="message-list-wrapper" @ref="_messageListWrapper">
                 <ul class="message-list">
-                    @if (Messages is not null)
+                    @if (User is not null && Messages is not null)
                     {
                         @foreach (ChatMessageDto message in _messages)
                         {
                             <li>
                                 <span class="message-meta"><b>@message.SenderEmail</b>, <b>@message.MessageDateTime</b></span>
-                                <p class="message-text">@message.MessageContent</p>
+                                @if (_editMessage && _editMessageId == message.Id) {
+                                    <input type="text" @bind-value="@message.MessageContent" />
+                                    <div class="display:flex;flex-direction:row;">
+                                        <button class="btn-remove" type="button" @onclick="() => SaveMessageEdit(message)">Save</button>
+                                        <button class="btn-remove" type="cancel" @onclick="() => CancelMessageEdit(message)">Cancel</button>
+                                    </div>
+                                } else {
+                                    <p class="message-text">@message.MessageContent</p>
+                                }
                             </li>
+                            @if(message.ChatUserId == User.Id) {
+                                <button class="btn-remove" type="button" disabled="@_editMessage"
+                                        @onclick="() => EditMesssage(message)" >
+                                    Edit
+                                </button>
+                            }
                         }
                     }
                 </ul>
@@ -112,8 +126,10 @@
     private string _message = string.Empty;
     private string _inviteEmail = string.Empty;
     private string _inviteStatus = string.Empty;
+    private int _editMessageId = -1;
     private bool _isOwner => User.Id == ChatDto.ChatOwnerId;
     private bool _showChatOptions = false;
+    private bool _editMessage = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -151,6 +167,13 @@
             MessageHubConnection.On<ChatUserDto>("MemberRemoved", (ChatUserDto user) => {
             }); *@
 
+            MessageHubConnection.On<ChatMessageDto>("MessageUpdated", (ChatMessageDto message) =>
+            {
+                int index = _messages.IndexOf(message);
+                _messages[index] = message;
+                InvokeAsync(StateHasChanged);
+            });
+
             MessageHubConnection.On<ChatMessageDto>("ReceiveMessage", (ChatMessageDto message) =>
             {
                 _messages.Add(message);
@@ -177,6 +200,38 @@
     private void CloseChatOptions()
     {
         _showChatOptions = false;
+    }
+
+    private void EditMesssage(ChatMessageDto message)
+    {
+        // switch the span into an input
+        // give the span the same content
+        // when the message is finished editing, send to db and update
+
+        _editMessage = true;
+        _editMessageId = message.Id;
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void CancelMessageEdit(ChatMessageDto message)
+    {
+        _editMessage = false;
+        _editMessageId = -1;
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async void SaveMessageEdit(ChatMessageDto message)
+    {
+        _editMessage = false;
+        _editMessageId = -1;
+
+        // Save changes to the database if the message content is actually different.
+        Console.WriteLine($"Edited: {message.MessageContent}"); 
+
+        await MessageHubConnection.SendAsync("EditMessage", message);
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task ScrollToBottom()
