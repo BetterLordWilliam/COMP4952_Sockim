@@ -74,9 +74,9 @@
                             <li>
                                 <span class="message-meta"><b>@message.SenderEmail</b>, <b>@message.MessageDateTime</b></span>
                                 @if (_editMessage && _editMessageId == message.Id) {
-                                    <input type="text" @bind-value="@message.MessageContent" />
+                                    <input type="text" @bind-value="@_updatedMessage" />
                                     <div class="display:flex;flex-direction:row;">
-                                        <button class="btn-remove" type="button" @onclick="() => SaveMessageEdit(message)">Save</button>
+                                        <button class="btn-remove" type="button" @onclick="() => SaveMessageEdit(message, _updatedMessage)">Save</button>
                                         <button class="btn-remove" type="cancel" @onclick="() => CancelMessageEdit(message)">Cancel</button>
                                     </div>
                                 } else {
@@ -124,6 +124,7 @@
     private List<ChatMessageDto> _messages = [];
     private List<ChatUserDto> _chatMembers = [];
     private string _message = string.Empty;
+    private string _updatedMessage = string.Empty;
     private string _inviteEmail = string.Empty;
     private string _inviteStatus = string.Empty;
     private int _editMessageId = -1;
@@ -209,7 +210,10 @@
         // when the message is finished editing, send to db and update
 
         _editMessage = true;
+        _updatedMessage = message.MessageContent;
         _editMessageId = message.Id;
+
+        Console.WriteLine(message.Id);
 
         InvokeAsync(StateHasChanged);
     }
@@ -222,13 +226,15 @@
         InvokeAsync(StateHasChanged);
     }
 
-    private async void SaveMessageEdit(ChatMessageDto message)
+    private async void SaveMessageEdit(ChatMessageDto message, string _updatedMessage)
     {
         _editMessage = false;
         _editMessageId = -1;
 
         // Save changes to the database if the message content is actually different.
         Console.WriteLine($"Edited: {message.MessageContent}"); 
+
+        message.MessageContent = _updatedMessage;
 
         await MessageHubConnection.SendAsync("EditMessage", message);
         await InvokeAsync(StateHasChanged);

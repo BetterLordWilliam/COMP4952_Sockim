@@ -81,11 +81,11 @@ public class MessageHub : Hub
             _logger.LogInformation($"Message sent to chat {chatId} by user {messageDto.ChatUserId}");
 
             // Add the message to the database
-            await _messagesService.AddChatMessage(messageDto);
+            ChatMessageDto newMessage = await _messagesService.AddChatMessage(messageDto);
 
             // Broadcast to all users in the chat
             string groupName = $"chat-{chatId}";
-            await Clients.Group(groupName).SendAsync("ReceiveMessage", messageDto);
+            await Clients.Group(groupName).SendAsync("ReceiveMessage", newMessage);
 
             _logger.LogInformation($"Message broadcasted to chat group {groupName}");
         }
