@@ -18,6 +18,7 @@
 @inject ChatService ChatService
 
 <button type="button" class="btn-remove" @onclick="CloseChat">Close</button>
+<button type="button" class="btn-remove" @onclick="@OpenChatOptions">Chat Options</button>
 @if(_showChatOptions) {
     <div class="modal">
         <div class="modal-content members-panel">
@@ -62,7 +63,6 @@
                     <p><em>You are the chat owner</em></p>
                 </div>
             }
-            <button type="button" @onclick="@OpenChatOptions">Chat Options</button>
         </div>
         <div class="chat-content">
             <div class="message-list-wrapper" @ref="_messageListWrapper">

@@ -61,15 +61,11 @@
 </div>
 
 @code {
-    private bool _showCreateChat = false;
-    private bool _chatOpen = false;
-
-    private ElementReference _chatForm;
 
     [CascadingParameter]
     private Task<AuthenticationState>? _authState { get; set; }
+    private ElementReference _chatForm;
     private ClaimsPrincipal _userClaim = null!;
-
     private ChatUser _user = null!;
     private ChatDto _chat = null!;
 
@@ -80,6 +76,9 @@
     private HubConnection? _chatHubConnection;
     private HubConnection? _invitationHubConnection;
     private HubConnection? _messageHubConnection;
+
+    private bool _showCreateChat = false;
+    private bool _chatOpen = false;
     private bool IsChatConnected => _chatHubConnection?.State == HubConnectionState.Connected;
     private bool IsInvitationConnected => _invitationHubConnection?.State == HubConnectionState.Connected;
     private bool IsMessageConnected => _messageHubConnection?.State == HubConnectionState.Connected;
