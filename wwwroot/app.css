@@ -3,10 +3,7 @@
     --bs-primary: #7C4585;
     --bs-success: #C95792;
     --bs-danger: #F8B55F;
-}
-
-/* --- Color Palette --- */
-:root {
+    
     --primary: #3C467B;
     --secondary: #50589C;
     --accent: #636CCB;
@@ -14,6 +11,7 @@
     --text: #f5f6fa;
     --bg: #23263a;
     --card-bg: #2c3050;
+
     --border-radius: 16px;
     --shadow: 0 4px 24px rgba(60,70,123,0.12);
     --transition: 0.2s cubic-bezier(.4,0,.2,1);
@@ -45,10 +43,10 @@ body {
 }
 
 .header {
-    height: var(--header-height);
     background: var(--secondary);
     color: var(--text);
     display: flex;
+    flex-direction: column;
     align-items: center;
     padding: 0 32px;
     border-radius: var(--border-radius);

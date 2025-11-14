@@ -18,9 +18,9 @@
 @inject ChatService ChatService
 
 <button type="button" class="btn-remove" @onclick="CloseChat">Close</button>
-<div class="app-layout chat-app-layout">
-    <aside>
-        <div class="members-panel">
+@if(_showChatOptions) {
+    <div class="modal">
+        <div class="modal-content members-panel">
             <h3>Members</h3>
             @if (_chatMembers != null && _chatMembers.Count > 0)
             {
@@ -48,44 +48,46 @@
                     <p class="invite-status">@_inviteStatus</p>
                 }
             </div>
+            <button class="btn-remove" type="button" @onclick="@CloseChatOptions">Close</button>
         </div>
-    </aside>
-    <main class="main-content chat-main-content">
-        <section class="section chat-section">
-            <div class="chat-header">
-                <h2>@ChatDto.ChatName</h2>
-                @if (User?.Id == ChatDto.ChatOwnerId)
-                {
-                    <div class="owner-controls">
-                        <p><em>You are the chat owner</em></p>
-                    </div>
-                }
-            </div>
-            <div class="chat-content">
-                <div class="message-list-wrapper" @ref="_messageListWrapper">
-                    <ul class="message-list">
-                        @if (Messages is not null)
+    </div>
+}
+<div class="main-content chat-main-content">
+    <section class="section chat-section">
+        <div class="chat-header">
+            <h2>@ChatDto.ChatName</h2>
+            @if (User?.Id == ChatDto.ChatOwnerId)
+            {
+                <div class="owner-controls">
+                    <p><em>You are the chat owner</em></p>
+                </div>
+            }
+            <button type="button" @onclick="@OpenChatOptions">Chat Options</button>
+        </div>
+        <div class="chat-content">
+            <div class="message-list-wrapper" @ref="_messageListWrapper">
+                <ul class="message-list">
+                    @if (Messages is not null)
+                    {
+                        @foreach (ChatMessageDto message in _messages)
                         {
-                            @foreach (ChatMessageDto message in _messages)
-                            {
-                                <li>
-                                    <span class="message-meta"><b>@message.SenderEmail</b>, <b>@message.MessageDateTime</b></span>
-                                    <p class="message-text">@message.MessageContent</p>
-                                </li>
-                            }
+                            <li>
+                                <span class="message-meta"><b>@message.SenderEmail</b>, <b>@message.MessageDateTime</b></span>
+                                <p class="message-text">@message.MessageContent</p>
+                            </li>
                         }
-                    </ul>
-                </div>
-                <div class="input-controls">
-                    <div class="form-group">
-                        <label for="message-input">Message:</label>
-                        <input id="message-input" @bind="_message" class="message-input" />
-                    </div>
-                    <button class="send-btn" @onclick="Send">Send</button>
-                </div>
+                    }
+                </ul>
             </div>
-        </section>
-    </main>
+            <div class="input-controls">
+                <div class="form-group">
+                    <label for="message-input">Message:</label>
+                    <input id="message-input" @bind="_message" class="message-input" />
+                </div>
+                <button class="send-btn" @onclick="Send">Send</button>
+            </div>
+        </div>
+    </section>
 </div>
 
 @code {
@@ -111,6 +113,7 @@
     private string _inviteEmail = string.Empty;
     private string _inviteStatus = string.Empty;
     private bool _isOwner => User.Id == ChatDto.ChatOwnerId;
+    private bool _showChatOptions = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -164,6 +167,16 @@
             await MessageHubConnection.SendAsync("GetChatHistory", ChatDto.Id);
 
         }
+    }
+
+    private void OpenChatOptions()
+    {
+        _showChatOptions = true;
+    }
+
+    private void CloseChatOptions()
+    {
+        _showChatOptions = false;
     }
 
     private async Task ScrollToBottom()

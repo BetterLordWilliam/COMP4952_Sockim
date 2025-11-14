@@ -23,7 +23,10 @@
 <div class="app-layout">
         @* <button class="btn-remove" style="margin-bottom:2rem;" @onclick="CloseChat">Close</button> *@
     <div class="main-content">
-        <div class="header">Welcome, @(_user?.Email ?? "Guest")</div>
+        <div class="header">
+            <div>Welcome</div>
+            <div>@(_user?.Email ?? "Guest")</div>
+        </div>
         <div class="chat-list-header">
             <ChatInvitations ChatHubConnection="@_chatHubConnection" Invitations="@_invitations" User="@_user" />
         </div>
@@ -31,8 +34,7 @@
             @if(!_chatOpen)
             {
                 <div class="message-list-header">
-                    <span>Chats</span>
-                    <button class="btn-remove" style="margin-left:auto;" @onclick="OnAddChat">Create Chat</button>
+                    <button class="btn-remove" @onclick="OnAddChat">Create Chat</button>
                 </div>
                 @if(_user is not null && _chatHubConnection is not null && _showCreateChat)
                 {
