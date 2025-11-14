@@ -12,6 +12,9 @@ public class ChatDto : IEquatable<ChatDto>
 
     public bool Equals(ChatDto? other)
     {
-        return Id == other!.Id;
+        if (other is null)
+            return false;
+
+        return Id == other.Id;
     }
 }

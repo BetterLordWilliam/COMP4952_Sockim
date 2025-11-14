@@ -96,6 +96,36 @@ public class ChatService
     }
 
     /// <summary>
+    /// Will apply the differences in the incoming chatDto to the chat entity in the database.
+    /// </summary>
+    /// <param name="chatDto"></param>
+    /// <returns></returns>
+    public async Task<ChatDto?> UpdateChat(ChatDto chatDto)
+    {
+        try
+        {
+            Chat? chat = await _chatDbContext.Chats
+                .Where(c => c.Id == chatDto.Id)
+                .FirstOrDefaultAsync();
+
+            if (chat is null)
+                throw new Exception("no such chat exists.");
+
+            chat.ChatName = chatDto.ChatName;
+            chat.ChatOwnerId = chatDto.ChatOwnerId;
+
+            await _chatDbContext.SaveChangesAsync();
+
+            return ConvertToDto(chat);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"error while updating chat: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Gets all chats for a specific user (non-tracking).
     /// </summary>
     public async Task<ChatDto[]> GetChatsForUser(int userId)

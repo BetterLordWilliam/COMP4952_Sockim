@@ -1,4 +1,5 @@
-﻿@using COMP4952_Sockim.Hubs
+﻿@using COMP4952_Sockim.Components.Pages
+@using COMP4952_Sockim.Hubs
 @using COMP4952_Sockim.Services
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Identity
@@ -56,7 +57,18 @@
 <div class="main-content chat-main-content">
     <section class="section chat-section">
         <div class="chat-header">
-            <h2>@ChatDto.ChatName</h2>
+            @if(_editChatName) {
+                <h2>
+                    <input type="text" @bind-value="@_updatedChatName" />
+                </h2>
+                <div class="display:flex;flex-direction:row;">
+                    <button class="btn-remove" type="button" @onclick="SaveRenameChat">Save</button>
+                    <button class="btn-remove" type="button" @onclick="CancelRenameChat">Cancel</button>
+                </div>
+            } else {
+                <h2>@ChatDto.ChatName</h2>
+            }
+            <button class="btn-remove" type="button" @onclick="@RenameChat">Rename</button>
             @if (User?.Id == ChatDto.ChatOwnerId)
             {
                 <div class="owner-controls">
@@ -67,7 +79,7 @@
         <div class="chat-content">
             <div class="message-list-wrapper" @ref="_messageListWrapper">
                 <ul class="message-list">
-                    @if (User is not null && Messages is not null)
+                    @if (User is not null)
                     {
                         @foreach (ChatMessageDto message in _messages)
                         {
@@ -125,12 +137,14 @@
     private List<ChatUserDto> _chatMembers = [];
     private string _message = string.Empty;
     private string _updatedMessage = string.Empty;
+    private string _updatedChatName = string.Empty;
     private string _inviteEmail = string.Empty;
     private string _inviteStatus = string.Empty;
     private int _editMessageId = -1;
     private bool _isOwner => User.Id == ChatDto.ChatOwnerId;
     private bool _showChatOptions = false;
     private bool _editMessage = false;
+    private bool _editChatName = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -148,6 +162,11 @@
 
             ChatHubConnection.On<ChatUserDto[]>("RetrievedUsers", (ChatUserDto[] users) => {
                 _chatMembers = users.ToList();
+                InvokeAsync(StateHasChanged);
+            });
+
+            ChatHubConnection.On<ChatDto>("ChatUpdated", (ChatDto chat) => {
+                ChatDto = chat;
                 InvokeAsync(StateHasChanged);
             });
 
@@ -201,6 +220,34 @@
     private void CloseChatOptions()
     {
         _showChatOptions = false;
+    }
+
+    private void RenameChat()
+    {
+        _editChatName = true;
+        _updatedChatName = ChatDto.ChatName;
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async void SaveRenameChat()
+    {
+        _editChatName = false;
+
+        if (ChatHubConnection is null)
+            return;
+
+        ChatDto.ChatName = _updatedChatName;
+
+        await ChatHubConnection.SendAsync("RenameChat", ChatDto);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void CancelRenameChat()
+    {
+        _editChatName = false;
+
+        InvokeAsync(StateHasChanged);
     }
 
     private void EditMesssage(ChatMessageDto message)

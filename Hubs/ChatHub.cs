@@ -116,6 +116,39 @@ public class ChatHub : Hub
     }
 
     /// <summary>
+    /// Updates the name of the corresponding chat entity.
+    /// </summary>
+    /// <param name="chat"></param>
+    /// <returns></returns>
+    public async Task RenameChat(ChatDto chat)
+    {
+        try
+        {
+            ChatDto? newChat = await _chatService.UpdateChat(chat);
+            if (newChat is null)
+            {
+                _logger.LogError("chat update failed");
+                await Clients.Group($"chat-{chat.Id}").SendAsync("Error", new { message = "chat update failed" });
+                return;
+            }
+
+            await Clients.Group($"chat-{chat.Id}").SendAsync("ChatUpdated", newChat);
+
+            // Notify chat users that are not connected currently to the chat that it as updated
+            ChatUserDto[] chatUsers = await _chatService.GetChatMembers(newChat.Id);
+            foreach (ChatUserDto chatUser in chatUsers)
+            {
+                await Clients.Group($"user-{chatUser.Id}").SendAsync("ChatUpdated", newChat);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"error renaming chat: {ex.Message}");
+            await Clients.Caller.SendAsync("Error", new { message = "Failed to rename chat", error = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Retrieve chats for a specific user.
     /// </summary>
     public async Task RetrieveChats(int userId)
