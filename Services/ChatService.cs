@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using COMP4952_Sockim.Data;
 using COMP4952_Sockim.Models;
+using COMP4952_Sockim.Services.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace COMP4952_Sockim.Services;
@@ -18,60 +19,53 @@ public class ChatService
     }
 
     /// <summary>
-    /// Creates a new chat with the specified owner.
-    /// Adds the owner to ChatUsers automatically.
-    /// Pure CRUD - does not handle invitations.
+    /// Creates a new chat entity from a ChatDto, returns dto representing new chat when complete.
     /// </summary>
+    /// <param name="chatDto"></param>
+    /// <returns></returns>
+    /// <exception cref="ChatOwnerNotFound"></exception>
+    /// <exception cref="ChatException"></exception>
     public async Task<ChatDto?> CreateChat(ChatDto chatDto)
     {
         try
         {
-            // Get the owner
             ChatUser? owner = await _chatDbContext.Users
                 .FirstOrDefaultAsync(u => u.Id == chatDto.ChatOwnerId);
-
             if (owner == null)
             {
                 _logger.LogError($"Owner with ID {chatDto.ChatOwnerId} not found");
-                return null;
+                throw new ChatOwnerNotFound($"owner with id {chatDto.ChatOwnerId}");
             }
 
-            // Create the chat entity
             Chat chat = new()
             {
                 ChatName = chatDto.ChatName,
                 ChatOwnerId = chatDto.ChatOwnerId,
                 ChatOwner = owner
             };
-            
-            // Add the owner to the chat
             chat.ChatUsers.Add(owner);
-
-            // Add the chat to database
             _chatDbContext.Chats.Add(chat);
+
             await _chatDbContext.SaveChangesAsync();
 
             _logger.LogInformation($"Chat '{chatDto.ChatName}' created with ID {chat.Id}");
 
-            // Convert back to DTO and return
-            return new ChatDto
-            {
-                Id = chat.Id,
-                ChatName = chat.ChatName,
-                ChatOwnerId = chat.ChatOwnerId,
-                ChatOwnerEmail = owner.Email ?? string.Empty,
-                InvitedEmails = new()
-            };
+            return ConvertToDto(chat);
+        }
+        catch (OperationCanceledException ex)
+        {
+            _logger.LogError($"database operation cancelled while creating chat: {ex.Message}");
+            throw new ChatException("could not create chat");
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            _logger.LogError($"database update concurrency error while creating chat: {ex.Message}");
+            throw new ChatException("internal error could not create chat");
         }
         catch (DbUpdateException ex)
         {
-            _logger.LogError($"Database error while creating chat: {ex.Message}");
-            return null;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError($"Error while creating chat: {ex.Message}");
-            return null;
+            _logger.LogError($"database update error while creating chat: {ex.Message}");
+            throw new ChatException("internal error could not create chat");
         }
     }
 

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 using COMP4952_Sockim.Data;
 using COMP4952_Sockim.Models;
 using COMP4952_Sockim.Services;
+using COMP4952_Sockim.Services.Exceptions;
 
 namespace COMP4952_Sockim.Hubs;
 
@@ -27,18 +28,33 @@ public class ChatHub : Hub
 
 #region:User / Chat
 
+    /// <summary>
+    /// Creates group for a connection -- representative of a user.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
     public async Task AddChatUser(int id)
     {
         string userGroupName = $"user-{id}";
         await Groups.AddToGroupAsync(Context.ConnectionId, userGroupName);
     }
 
+    /// <summary>
+    /// Removes connection from group for a chat user.
+    /// </summary>
+    /// <param name="chatUserDto"></param>
+    /// <returns></returns>
     public async Task RemoveChatUser(ChatUserDto chatUserDto)
     {
         string userGroupName = $"user-{chatUserDto.Id}";
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, userGroupName);
     }
 
+    /// <summary>
+    /// Connects to a group for a specific chat.
+    /// </summary>
+    /// <param name="chatId"></param>
+    /// <returns></returns>
     public async Task ConnectToChatGroup(int chatId)
     {
         string chatGroupName = $"chat-{chatId}";
@@ -46,6 +62,11 @@ public class ChatHub : Hub
         _logger.LogInformation(chatGroupName);
     }
 
+    /// <summary>
+    /// Remobes connection form a group for a specific.
+    /// </summary>
+    /// <param name="chatId"></param>
+    /// <returns></returns>
     public async Task DisconnectToChatGroup(int chatId)
     {
         string chatGroupName = $"chat-{chatId}";
@@ -72,46 +93,58 @@ public class ChatHub : Hub
                 return;
             }
 
-            bool success = await _invitationService.AddInvitations(invitations.ToArray());
+            // bool success = await _invitationService.AddInvitations(invitations.ToArray());
 
-            if (success)
-            {
-                _logger.LogInformation($"Added {invitations.Count} invitations for chat {createdChat.Id}");
-            }
-            else
-            {
-                _logger.LogWarning($"Failed to add invitations {chatDto.ChatName}, {chatDto.Id}");
-            }
+            // if (success)
+            // {
+            //     _logger.LogInformation($"Added {invitations.Count} invitations for chat {createdChat.Id}");
+            // }
+            // else
+            // {
+            //     _logger.LogWarning($"Failed to add invitations {chatDto.ChatName}, {chatDto.Id}");
+            // }
 
-            if (invitations != null && invitations.Count > 0)
-            {
-                foreach (var invitation in invitations)
-                {
-                    invitation.ChatId = createdChat.Id;
-                    invitation.SenderId = chatDto.ChatOwnerId;
+            // if (invitations != null && invitations.Count > 0)
+            // {
+            //     foreach (var invitation in invitations)
+            //     {
+            //         invitation.ChatId = createdChat.Id;
+            //         invitation.SenderId = chatDto.ChatOwnerId;
 
-                    bool added = await _invitationService.AddInvitation(invitation);
-                    if (added)
-                    {
-                        // 3. Notify recipient about invitation
-                        await Clients.Group($"user-{invitation.ReceiverId}")
-                            .SendAsync("IncomingInvitation", invitation);
-                        _logger.LogInformation($"Invitation sent to user {invitation.ReceiverId}");
-                    }
-                    else
-                    {
-                    }
-                }
+            //         bool added = await _invitationService.AddInvitation(invitation);
+            //         if (added)
+            //         {
+            //             // 3. Notify recipient about invitation
+            //             await Clients.Group($"user-{invitation.ReceiverId}")
+            //                 .SendAsync("IncomingInvitation", invitation);
+            //             _logger.LogInformation($"Invitation sent to user {invitation.ReceiverId}");
+            //         }
+            //         else
+            //         {
+            //         }
+            //     }
 
-            }
+            // }
 
             await Clients.Caller.SendAsync("ChatCreated", createdChat);
             _logger.LogInformation($"Chat '{createdChat.ChatName}' created successfully");
         }
-        catch (Exception ex)
+        catch (ChatException ex)
         {
             _logger.LogError($"Error adding chat: {ex.Message}");
-            await Clients.Caller.SendAsync("Error", new { message = "Failed to create chat", error = ex.Message });
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = "Failed to create chat",
+                Exception = ex
+            });
+        }
+        catch (ChatOwnerNotFound ex)
+        {
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = $"could not create chat for owner {chatDto.ChatOwnerEmail}, owner id {chatDto.ChatOwnerId}",
+                Exception = ex
+            });
         }
     }
 
@@ -184,37 +217,50 @@ public class ChatHub : Hub
             }
 
             ChatUser? sender = _chatUserService.GetUser(senderId);
-            ChatUser? invitee = _chatUserService.GetUserByEmail(receiverEmail);
+            ChatUser? receiver = _chatUserService.GetUserByEmail(receiverEmail);
 
-            if (invitee is not null && sender is not null)
+            if (sender is null)
             {
-                var invitationDto = new ChatInvitationDto
-                {
-                    ChatName = chat.ChatName,
-                    SenderId = senderId,
-                    SenderEmail = sender.Email ?? string.Empty,
-                    ReceiverId = invitee.Id,
-                    ReceiverEmail = invitee.Email ?? string.Empty,
-                    ChatId = chatId,
-                    Accepted = false
-                };
+                _logger.LogError($"sender {senderId} does not exist for invitation");
+                return;
+            }
 
-                bool added = await _invitationService.AddInvitation(invitationDto);
-                if (added)
-                {
-                    // Notify the recipient via InvitationHub group
-                    await Clients.Group($"user-{invitationDto.ReceiverId}")
-                        .SendAsync("IncomingInvitation", invitationDto);
+            if (receiver is null)
+            {
+                _logger.LogError($"reciever with email {receiverEmail} does not exist for invitation");
+                // return await Clients.Caller.SendAsync("Error", new SockimError()
+                // {
+                //     Message = $"no such user, {receiverEmail}",
+                // });
+                return;
+            }
 
-                    // Confirm to sender
-                    await Clients.Caller.SendAsync("InvitationSent", new { email = receiverEmail, chatId });
-                    _logger.LogInformation($"Invitation sent to {receiverEmail} for chat {chatId}");
-                }
-                else
-                {
-                    _logger.LogError($"Failed to create invitation for {receiverEmail}");
-                    await Clients.Caller.SendAsync("Error", new { message = "Failed to send invitation" });
-                }
+            var invitationDto = new ChatInvitationDto
+            {
+                ChatName = chat.ChatName,
+                SenderId = senderId,
+                SenderEmail = sender.Email ?? string.Empty,
+                ReceiverId = receiver.Id,
+                ReceiverEmail = receiver.Email ?? string.Empty,
+                ChatId = chatId,
+                Accepted = false
+            };
+
+            bool added = await _invitationService.AddInvitation(invitationDto);
+            if (added)
+            {
+                // Notify the recipient via InvitationHub group
+                await Clients.Group($"user-{invitationDto.ReceiverId}")
+                    .SendAsync("IncomingInvitation", invitationDto);
+
+                // Confirm to sender
+                await Clients.Caller.SendAsync("InvitationSent", new { email = receiverEmail, chatId });
+                _logger.LogInformation($"Invitation sent to {receiverEmail} for chat {chatId}");
+            }
+            else
+            {
+                _logger.LogError($"Failed to create invitation for {receiverEmail}");
+                await Clients.Caller.SendAsync("Error", new { message = "Failed to send invitation" });
             }
         }
         catch (Exception ex)

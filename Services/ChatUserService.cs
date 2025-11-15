@@ -31,6 +31,11 @@ public class ChatUserService
 
             return user;
         }
+        catch (ArgumentNullException ex)
+        {
+            _logger.LogError($"operation to get user failed");
+            return null;
+        }
         catch (OperationCanceledException ex)
         {
             _logger.LogInformation($"operation to get user failed: {ex.Message}");

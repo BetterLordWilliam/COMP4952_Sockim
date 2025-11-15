@@ -132,6 +132,10 @@
                 InvokeAsync(StateHasChanged);
             });
 
+            _chatHubConnection.On<SockimError>("Error", (SockimError error) => {
+                Console.WriteLine($"CLIENT ERROR RECEIVED: {error.Message}");
+            });
+
             _messageHubConnection = new HubConnectionBuilder()
                 .WithUrl(NavManager.ToAbsoluteUri("/messagehub"))
                 .WithAutomaticReconnect()
