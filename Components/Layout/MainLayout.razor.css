@@ -43,11 +43,14 @@
     padding-top: var(--top-row-height);
     padding-left: 1.5rem;
     padding-right: 1.5rem;
+    height: 100%;
+    box-sizing: border-box;
 }
 
 .app-content {
     padding-left: 1.5rem;
     padding-right: 1.5rem;
+    height: calc(100% - var(--top-row-height));
 }
 
 #blazor-error-ui {

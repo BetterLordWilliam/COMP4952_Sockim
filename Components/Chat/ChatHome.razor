@@ -14,35 +14,33 @@
 
 <div class="app-layout">
     <div class="main-content">
-        <div class="shadow-outline">
-            <div class="main-content-header">
-                <ChatInvitations ChatHubConnection="@_chatHubConnection" Invitations="@_invitations" User="@_user" />
-            </div>
-            <hr />
-            @if(!_chatOpen)
-            {
-                <div class="chat-list-header">
-                    <button class="btn-regular" @onclick="OnAddChat">Create Chat</button>
-                </div>
-                @if(_user is not null && _chatHubConnection is not null && _showCreateChat)
-                {
-                    <ChatCreateForm ChatHubConnection=_chatHubConnection User=_user OnClose="CloseAddChat" />
-                }
-                <ChatList   ChatOpened="@OpenChat"
-                            ChatHubConnection="@_chatHubConnection"
-                            Chats="@_chats"
-                            User="@_user" />
-            }
-            else
-            {
-                <ChatForm   MessageHubConnection="@_messageHubConnection"
-                            ChatHubConnection="@_chatHubConnection"
-                            CloseChat="@CloseChat"
-                            ChatDto="@_chat"
-                            Messages="@_messages"
-                            User="@_user" />
-            }
+        <div class="main-content-header">
+            <ChatInvitations ChatHubConnection="@_chatHubConnection" Invitations="@_invitations" User="@_user" />
         </div>
+        <hr />
+        @if(!_chatOpen)
+        {
+            <div class="chat-list-header">
+                <button class="btn-regular" @onclick="OnAddChat">Create Chat</button>
+            </div>
+            @if(_user is not null && _chatHubConnection is not null && _showCreateChat)
+            {
+                <ChatCreateForm ChatHubConnection=_chatHubConnection User=_user OnClose="CloseAddChat" />
+            }
+            <ChatList   ChatOpened="@OpenChat"
+                        ChatHubConnection="@_chatHubConnection"
+                        Chats="@_chats"
+                        User="@_user" />
+        }
+        else
+        {
+            <ChatForm   MessageHubConnection="@_messageHubConnection"
+                        ChatHubConnection="@_chatHubConnection"
+                        CloseChat="@CloseChat"
+                        ChatDto="@_chat"
+                        Messages="@_messages"
+                        User="@_user" />
+        }
     </div>
 </div>
 

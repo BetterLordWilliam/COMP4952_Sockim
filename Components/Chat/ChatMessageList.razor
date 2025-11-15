@@ -1,0 +1,97 @@
+﻿@using COMP4952_Sockim.Data
+@using COMP4952_Sockim.Models
+@using Microsoft.AspNetCore.SignalR.Client
+
+@inject IJSRuntime JSRuntime
+
+<div class="message-list-wrapper" @ref="_messageListWrapper">
+    <ul class="message-list">
+        @if (User is not null && ChatMessages is not null)
+        {
+            @foreach (ChatMessageDto message in ChatMessages)
+            {
+                <li>
+                    <span class="message-meta"><b>@message.SenderEmail</b>, <b>@message.MessageDateTime</b></span>
+                    @if (_editMessage && _editMessageId == message.Id) {
+                        <div class="input-controls">
+                            <input type="text" @bind-value="@_updatedMessage" />
+                            <div class="message-edit-options">
+                                <button class="btn-remove" type="button" @onclick="() => SaveMessageEdit(message, _updatedMessage)">Save</button>
+                                <button class="btn-remove" type="cancel" @onclick="() => CancelMessageEdit(message)">Cancel</button>
+                            </div>
+                        </div>
+                    } else {
+                        <p class="message-text">@message.MessageContent</p>
+                        @if(message.ChatUserId == User.Id) {
+                            <button class="btn-remove" type="button" disabled="@_editMessage"
+                                    @onclick="() => EditMesssage(message)" >
+                                Edit
+                            </button>
+                        }
+                    }
+                </li>
+            }
+        }
+    </ul>
+</div>
+
+@code {
+    [Parameter]
+    public List<ChatMessageDto>? ChatMessages { get; set; }
+    [Parameter]
+    public ChatUser? User { get; set; }
+    [Parameter]
+    public HubConnection? MessageHubConnection { get; set; }
+
+    private int _editMessageId = -1;
+    private bool _editMessage = false;
+    private string _updatedMessage = string.Empty;
+    private ElementReference _messageListWrapper;
+
+    private void EditMesssage(ChatMessageDto message)
+    {
+        // switch the span into an input
+        // give the span the same content
+        // when the message is finished editing, send to db and update
+
+        _editMessage = true;
+        _updatedMessage = message.MessageContent;
+        _editMessageId = message.Id;
+
+        Console.WriteLine(message.Id);
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void CancelMessageEdit(ChatMessageDto message)
+    {
+        _editMessage = false;
+        _editMessageId = -1;
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async void SaveMessageEdit(ChatMessageDto message, string _updatedMessage)
+    {
+        if (MessageHubConnection is null)
+        {
+            return;
+        }
+
+        _editMessage = false;
+        _editMessageId = -1;
+
+        message.MessageContent = _updatedMessage;
+
+        await MessageHubConnection.SendAsync("EditMessage", message);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ScrollToBottom()
+    {
+        if (_messageListWrapper.Id != null)
+        {
+            await JSRuntime.InvokeVoidAsync("scrollToElementBottom", _messageListWrapper);
+        }
+    }
+}

@@ -1,0 +1,34 @@
+.message-list-wrapper {
+    background: rgba(60,70,123,0.08);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.message-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.message-list li {
+    margin-bottom: 18px;
+    padding: 12px 16px;
+    background: rgba(99,108,203,0.12);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(60,70,123,0.08);
+}
+
+.message-list b {
+    color: var(--highlight);
+}
+
+.message-edit-options {
+    display: flex;
+    flex-direction: row;
+    gap: var(--small-gap);
+    padding-bottom: var(--small-gap);
+}
+
+.input-controls {
+    gap: var(--small-gap);
+}

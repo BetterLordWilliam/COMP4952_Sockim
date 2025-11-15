@@ -18,9 +18,6 @@
 @inject ChatUserService ChatUserService
 @inject ChatService ChatService
 
-<button type="button" class="btn-remove" @onclick="CloseChat">Close</button>
-<button type="button" class="btn-remove" @onclick="@OpenChatOptions">Chat Options</button>
-
 @if(_showChatOptions) {
     <ChatFormOptions    ChatMembers="@_chatMembers"
                         ChatDto="@ChatDto"
@@ -29,46 +26,21 @@
                         CloseChatOptions="@CloseChatOptions"></ChatFormOptions>
 }
 
-<div class="main-content chat-main-content">
-    <section class="section chat-section">
-        <div class="chat-content">
-            <div class="message-list-wrapper" @ref="_messageListWrapper">
-                <ul class="message-list">
-                    @if (User is not null)
-                    {
-                        @foreach (ChatMessageDto message in _messages)
-                        {
-                            <li>
-                                <span class="message-meta"><b>@message.SenderEmail</b>, <b>@message.MessageDateTime</b></span>
-                                @if (_editMessage && _editMessageId == message.Id) {
-                                    <input type="text" @bind-value="@_updatedMessage" />
-                                    <div class="display:flex;flex-direction:row;">
-                                        <button class="btn-remove" type="button" @onclick="() => SaveMessageEdit(message, _updatedMessage)">Save</button>
-                                        <button class="btn-remove" type="cancel" @onclick="() => CancelMessageEdit(message)">Cancel</button>
-                                    </div>
-                                } else {
-                                    <p class="message-text">@message.MessageContent</p>
-                                }
-                                @if(message.ChatUserId == User.Id) {
-                                    <button class="btn-remove" type="button" disabled="@_editMessage"
-                                            @onclick="() => EditMesssage(message)" >
-                                        Edit
-                                    </button>
-                                }
-                            </li>
-                        }
-                    }
-                </ul>
-            </div>
-            <div class="input-controls">
-                <div class="form-group">
-                    <label for="message-input">Message:</label>
-                    <input id="message-input" @bind="_message" class="message-input" />
-                </div>
-                <button class="send-btn" @onclick="Send">Send</button>
-            </div>
-        </div>
-    </section>
+<div class="chat-header">
+    <button type="button" class="btn-remove" @onclick="CloseChat">Close</button>
+    <button type="button" class="btn-remove" @onclick="@OpenChatOptions">Chat Options</button>
+</div>
+<div class="chat-content">
+    <div class="chat-message-list">
+        <ChatMessageList    ChatMessages="@_messages"
+                            User="@User"
+                            MessageHubConnection="@MessageHubConnection"></ChatMessageList>
+    </div>
+    <div class="input-controls chat-input-controls">
+        <label for="message-input">Message:</label>
+        <input id="message-input" @bind="_message" class="message-input" />
+        <button class="btn-regular" @onclick="Send">Send</button>
+    </div>
 </div>
 
 @code {
@@ -91,11 +63,7 @@
     private List<ChatMessageDto> _messages = [];
     private List<ChatUserDto> _chatMembers = [];
     private string _message = string.Empty;
-
-    private int _editMessageId = -1;
     private bool _showChatOptions = false;
-    private bool _editMessage = false;
-    private string _updatedMessage = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -159,7 +127,6 @@
 
             await MessageHubConnection.SendAsync("JoinChat", ChatDto.Id, User.Id);
             await MessageHubConnection.SendAsync("GetChatHistory", ChatDto.Id);
-
         }
     }
 
@@ -171,45 +138,6 @@
     private void CloseChatOptions()
     {
         _showChatOptions = false;
-    }
-
-
-
-    private void EditMesssage(ChatMessageDto message)
-    {
-        // switch the span into an input
-        // give the span the same content
-        // when the message is finished editing, send to db and update
-
-        _editMessage = true;
-        _updatedMessage = message.MessageContent;
-        _editMessageId = message.Id;
-
-        Console.WriteLine(message.Id);
-
-        InvokeAsync(StateHasChanged);
-    }
-
-    private void CancelMessageEdit(ChatMessageDto message)
-    {
-        _editMessage = false;
-        _editMessageId = -1;
-
-        InvokeAsync(StateHasChanged);
-    }
-
-    private async void SaveMessageEdit(ChatMessageDto message, string _updatedMessage)
-    {
-        _editMessage = false;
-        _editMessageId = -1;
-
-        // Save changes to the database if the message content is actually different.
-        Console.WriteLine($"Edited: {message.MessageContent}"); 
-
-        message.MessageContent = _updatedMessage;
-
-        await MessageHubConnection.SendAsync("EditMessage", message);
-        await InvokeAsync(StateHasChanged);
     }
 
     private async Task ScrollToBottom()
