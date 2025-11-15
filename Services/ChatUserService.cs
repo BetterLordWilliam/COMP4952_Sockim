@@ -49,11 +49,11 @@ public class ChatUserService
     }
 
     /// <summary>
-    /// Retrives a user by an email string.
+    /// Retrieves a user by their email.
     /// </summary>
     /// <param name="email"></param>
     /// <returns></returns>
-    /// <exception cref="ChatUserDoesNotExistException"></exception>
+    /// <exception cref="ChatUserNotFoundException"></exception>
     /// <exception cref="ChatUserException"></exception>
     public ChatUserDto GetUserByEmail(string email)
     {

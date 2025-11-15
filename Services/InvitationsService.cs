@@ -19,9 +19,13 @@ public class InvitationsService
     }
 
     /// <summary>
-    /// Deletes an invitation by composite key.
-    /// Pure CRUD operation.
+    /// Deletes a chat invitation.
     /// </summary>
+    /// <param name="senderId"></param>
+    /// <param name="receiverId"></param>
+    /// <param name="chatId"></param>
+    /// <returns></returns>
+    /// <exception cref="ChatInvitationException"></exception>
     public async Task DeleteInvitation(int senderId, int receiverId, int chatId)
     {
         try
@@ -47,8 +51,11 @@ public class InvitationsService
     }
 
     /// <summary>
-    /// Adds multiple invitations from DTOs.
+    /// Adds multiple chat invitations
     /// </summary>
+    /// <param name="invitationDtos"></param>
+    /// <exception cref="ChatInvitationException"></exception>
+    /// <returns></returns>
     public async Task AddInvitations(ChatInvitationDto[] invitationDtos)
     {
         foreach (ChatInvitationDto invitation in invitationDtos)
@@ -60,8 +67,11 @@ public class InvitationsService
     }
 
     /// <summary>
-    /// Adds a single invitation from DTO.
+    /// Adds chat invitation
     /// </summary>
+    /// <param name="invitationDto"></param>
+    /// <returns></returns>
+    /// <exception cref="ChatInvitationException"></exception>
     public async Task AddInvitation(ChatInvitationDto invitationDto)
     {
         try
@@ -102,8 +112,11 @@ public class InvitationsService
     }
 
     /// <summary>
-    /// Gets pending invitations for a specific user (non-tracking).
+    /// Retrieves a users invitations
     /// </summary>
+    /// <param name="userId"></param>
+    /// <returns></returns>
+    /// <exception cref="ChatInvitationException"></exception>
     public async Task<ChatInvitationDto[]> GetUserInvitations(int userId)
     {
         try
@@ -140,8 +153,13 @@ public class InvitationsService
     }
 
     /// <summary>
-    /// Gets an invitation by composite key.
+    /// Gets a specific invitation.
     /// </summary>
+    /// <param name="senderId"></param>
+    /// <param name="receiverId"></param>
+    /// <param name="chatId"></param>
+    /// <returns></returns>
+    /// <exception cref="ChatInvitationException"></exception>
     public async Task<ChatInvitationDto> GetInvitation(int senderId, int receiverId, int chatId)
     {
         try
