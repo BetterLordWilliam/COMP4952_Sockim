@@ -117,30 +117,13 @@
             InvitedEmails = new List<string>(_emails)
         };
 
-        List<ChatInvitationDto> invitations = new();
-        ChatUser[]? invitedUsers = ChatUserService.GetUserByEmail(_emails.ToArray());
-
-        if (invitedUsers != null)
-        {
-            foreach (ChatUser invitedUser in invitedUsers)
-            {
-                invitations.Add(new ChatInvitationDto
-                {
-                    ChatName = _chatName,
-                    SenderId = User.Id,
-                    SenderEmail = User.Email ?? string.Empty,
-                    ReceiverId = invitedUser.Id,
-                    ReceiverEmail = invitedUser.Email ?? string.Empty,
-                    Accepted = false
-                });
-            }
-        }
 
         if (ChatHubConnection is not null)
         {
             try
             {
-                await ChatHubConnection.SendAsync("AddChat", chatDto, invitations);
+                await ChatHubConnection.SendAsync("AddChat", chatDto);
+                await ChatHubConnection.SendAsync("InviteUsersToChat", chatDto, User, _emails);
             }
             catch (Exception ex)
             {

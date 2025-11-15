@@ -17,50 +17,6 @@ public class InvitationsService
         _chatDbContext = chatDbContext;
     }
 
-    /// <summary>
-    /// Adds a user to a chat.
-    /// Pure CRUD operation - adds ChatUser relationship without any orchestration.
-    /// </summary>
-    public async Task<bool> AddUserToChat(int chatId, int userId)
-    {
-        try
-        {
-            Chat? chat = await _chatDbContext.Chats
-                .Include(c => c.ChatUsers)
-                .FirstOrDefaultAsync(c => c.Id == chatId);
-
-            if (chat == null)
-            {
-                _logger.LogError($"Chat with ID {chatId} not found");
-                return false;
-            }
-
-            ChatUser? user = await _chatDbContext.Users.FindAsync(userId);
-            if (user == null)
-            {
-                _logger.LogError($"User with ID {userId} not found");
-                return false;
-            }
-
-            // Check if user is already in chat
-            if (chat.ChatUsers.Any(cu => cu.Id == userId))
-            {
-                _logger.LogWarning($"User {userId} is already in chat {chatId}");
-                return false;
-            }
-
-            chat.ChatUsers.Add(user);
-            await _chatDbContext.SaveChangesAsync();
-
-            _logger.LogInformation($"User {userId} added to chat {chatId}");
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError($"Error adding user to chat: {ex.Message}");
-            return false;
-        }
-    }
 
     /// <summary>
     /// Deletes an invitation by composite key.

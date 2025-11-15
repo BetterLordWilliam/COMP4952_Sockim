@@ -1,6 +1,7 @@
 using System;
 using COMP4952_Sockim.Data;
 using COMP4952_Sockim.Models;
+using COMP4952_Sockim.Services.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace COMP4952_Sockim.Services;
@@ -17,77 +18,87 @@ public class ChatUserService
     }
 
     /// <summary>
-    /// Retrives a user by their id.
+    /// Retrives a user by their ID.
     /// </summary>
     /// <param name="id"></param>
     /// <returns></returns>
-    public ChatUser? GetUser(int? id = null)
+    /// <exception cref="ChatUserException"></exception>
+    public ChatUserDto GetUser(int id)
     {
         try
         {
-            ChatUser user = (_chatDbContext.Users
+            ChatUser? user = _chatDbContext.Users
                 .Where(u => u.Id == id)
-                .FirstOrDefault())!;
+                .FirstOrDefault();
 
-            return user;
+            if (user is null)
+                throw new ChatUserException($"user does not exist with id {id}");
+
+            _logger.LogInformation($"found user: {user.Email}");
+
+            return ConvertToDto(user);
         }
         catch (ArgumentNullException ex)
         {
-            _logger.LogError($"operation to get user failed");
-            return null;
-        }
-        catch (OperationCanceledException ex)
-        {
-            _logger.LogInformation($"operation to get user failed: {ex.Message}");
-
-            return null;
+            _logger.LogError($"operation to get user failed, {ex.Message}");
+            throw new ChatUserException("internal error, failed to get user");
         }
     }
 
     /// <summary>
-    /// retrieves a user given a specific email.
+    /// Retrives a user by an email string.
     /// </summary>
     /// <param name="email"></param>
     /// <returns></returns>
-    public ChatUser? GetUserByEmail(string email)
+    /// <exception cref="ChatUserDoesNotExistException"></exception>
+    /// <exception cref="ChatUserException"></exception>
+    public ChatUserDto GetUserByEmail(string email)
     {
         try
         {
-            var user = _chatDbContext.Users
+            ChatUser? user = _chatDbContext.Users
                 .Where(u => u.Email == email)
                 .AsNoTracking()
                 .FirstOrDefault();
 
-            _logger.LogInformation($"found user: {user}");
+            if (user is null)
+                throw new ChatUserDoesNotExistException($"user does not exist with email {email}");
 
-            return user;
+            _logger.LogInformation($"found user: {user.Email}");
+
+            return ConvertToDto(user);
         }
-        catch (OperationCanceledException ex)
+        catch (ArgumentNullException ex)
         {
             _logger.LogError($"operation to get user with email \'{email}\' failed: {ex.Message}");
-
-            return null;
+            throw new ChatUserException("internal error, failed to get user by email");
         }
     }
 
-    public ChatUser[]? GetUserByEmail(string[] emails)
+    /// <summary>
+    /// Retrieves an array of users by email.
+    /// </summary>
+    /// <param name="emails"></param>
+    /// <returns></returns>
+    /// <exception cref="ChatUserException"></exception>
+    public ChatUserDto[] GetUserByEmail(string[] emails)
     {
         try
         {
-            var users = _chatDbContext.Users
+            ChatUserDto[] users = _chatDbContext.Users
                 .Where(u => emails.Contains(u.Email))
                 .AsNoTracking()
+                .Select(cu => ConvertToDto(cu))
                 .ToArray();
 
             _logger.LogInformation($"found users: {users.Count()}");
 
             return users;
         }
-        catch (OperationCanceledException ex)
+        catch (ArgumentNullException ex)
         {
             _logger.LogError($"operation to get user with emails failed: {ex.Message}");
-
-            return null;
+            throw new ChatUserException("internal error, failed to retrieve users by email");
         }
     }
 
@@ -96,19 +107,12 @@ public class ChatUserService
     /// </summary>
     /// <param name="chatUser"></param>
     /// <returns></returns>
-    public ChatUserDto? ConvertToDto(ChatUser? chatUser)
+    public ChatUserDto ConvertToDto(ChatUser chatUser)
     {
-        if (chatUser is not null)
+        return new ChatUserDto()
         {
-            return new ChatUserDto()
-            {
-                Id = chatUser.Id,
-                Email = chatUser.Email
-            };
-        }
-        else
-        {
-            return null;
-        }
+            Id = chatUser.Id,
+            Email = chatUser?.Email ?? string.Empty
+        };
     }
 }

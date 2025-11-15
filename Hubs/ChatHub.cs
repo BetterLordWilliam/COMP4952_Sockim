@@ -207,7 +207,6 @@ public class ChatHub : Hub
         {
             _logger.LogInformation($"Inviting user {receiverEmail} to chat {chatId} by user {senderId}");
 
-            // Verify chat and sender
             Chat? chat = await _chatService.GetChatById(chatId);
             if (chat == null)
             {
@@ -216,26 +215,9 @@ public class ChatHub : Hub
                 return;
             }
 
-            ChatUser? sender = _chatUserService.GetUser(senderId);
-            ChatUser? receiver = _chatUserService.GetUserByEmail(receiverEmail);
-
-            if (sender is null)
-            {
-                _logger.LogError($"sender {senderId} does not exist for invitation");
-                return;
-            }
-
-            if (receiver is null)
-            {
-                _logger.LogError($"reciever with email {receiverEmail} does not exist for invitation");
-                // return await Clients.Caller.SendAsync("Error", new SockimError()
-                // {
-                //     Message = $"no such user, {receiverEmail}",
-                // });
-                return;
-            }
-
-            var invitationDto = new ChatInvitationDto
+            ChatUserDto sender = _chatUserService.GetUser(senderId);
+            ChatUserDto receiver = _chatUserService.GetUserByEmail(receiverEmail);
+            ChatInvitationDto invitationDto = new()
             {
                 ChatName = chat.ChatName,
                 SenderId = senderId,
@@ -247,13 +229,12 @@ public class ChatHub : Hub
             };
 
             bool added = await _invitationService.AddInvitation(invitationDto);
+
             if (added)
             {
-                // Notify the recipient via InvitationHub group
                 await Clients.Group($"user-{invitationDto.ReceiverId}")
                     .SendAsync("IncomingInvitation", invitationDto);
 
-                // Confirm to sender
                 await Clients.Caller.SendAsync("InvitationSent", new { email = receiverEmail, chatId });
                 _logger.LogInformation($"Invitation sent to {receiverEmail} for chat {chatId}");
             }
@@ -263,10 +244,47 @@ public class ChatHub : Hub
                 await Clients.Caller.SendAsync("Error", new { message = "Failed to send invitation" });
             }
         }
+        catch (ChatUserDoesNotExistException ex)
+        {
+            string msg = "tried to invite user that does not exist";
+
+            _logger.LogError(msg);
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+                Exception = ex
+            });
+        }
+        catch (Exception ex) when (ex is ChatUserException)
+        {
+            string msg = "internal error, could not invite user";
+
+            _logger.LogError($"{msg}, {ex.Message}");
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+                Exception = ex
+            });
+
+        }
+    }
+
+    /// <summary>
+    /// Invite a list of users to a chat by email.
+    /// </summary>
+    /// <param name="chatDto"></param>
+    /// <param name="user"></param>
+    /// <param name="recieverEmails"></param>
+    /// <returns></returns>
+    public async Task InviteUsersToChat(ChatDto chatDto, ChatUser user, List<string> recieverEmails)
+    {
+        try
+        {
+        }
         catch (Exception ex)
         {
-            _logger.LogError($"Error inviting user to chat: {ex.Message}");
-            await Clients.Caller.SendAsync("Error", new { message = "Failed to invite user", error = ex.Message });
         }
     }
 
@@ -303,8 +321,7 @@ public class ChatHub : Hub
             bool removed = await _chatService.RemoveUserFromChat(chatId, userIdToRemove);
             if (removed)
             {
-                ChatUser? chatUser          = _chatUserService.GetUser(userIdToRemove);
-                ChatUserDto? chatUserDto    = _chatUserService.ConvertToDto(chatUser);
+                ChatUserDto? chatUserDto = _chatUserService.GetUser(userIdToRemove);
 
                 // Notify the removed user
                 await Clients.Group($"user-{userIdToRemove}")
@@ -445,8 +462,7 @@ public class ChatHub : Hub
         {
             _logger.LogInformation($"User {invitationDto.ReceiverId} accepting invitation from {invitationDto.SenderId} for chat {invitationDto.ChatId}");
 
-            // 1. Add receiver to chat (CRUD)
-            bool userAdded = await _invitationService.AddUserToChat(invitationDto.ChatId, invitationDto.ReceiverId);
+            bool userAdded = await _chatService.AddUserToChat(invitationDto.ChatId, invitationDto.ReceiverId);
             if (!userAdded)
             {
                 _logger.LogError($"Failed to add user {invitationDto.ReceiverId} to chat {invitationDto.ChatId}");
@@ -454,8 +470,7 @@ public class ChatHub : Hub
                 return;
             }
 
-            ChatUser? chatUser = _chatUserService.GetUser(invitationDto.ReceiverId);
-            ChatUserDto? chatUserDto = _chatUserService.ConvertToDto(chatUser);
+            ChatUserDto? chatUserDto = _chatUserService.GetUser(invitationDto.ReceiverId);
 
             // 2. Delete the invitation (CRUD)
             bool invitationDeleted = await _invitationService.DeleteInvitation(
