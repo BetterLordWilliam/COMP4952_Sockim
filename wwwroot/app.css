@@ -40,6 +40,31 @@ body {
     transition: box-shadow var(--transition);
 }
 
+.modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(60,70,123,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    padding: 40px 32px;
+    min-width: 340px;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.modal-content input, .modal-content button {
+    margin-top: 8px;
+}
 
 /* Buttons */
 
@@ -63,14 +88,19 @@ body {
     color: var(--text);
 }
 
-.btn-reject {
-    background: var(--secondary);
+.btn-reject .btn-danger {
+    background: var(--primary);
     color: var(--text);
+    border: none;
+    border-radius: var(--border-radius-small);
+    padding: 4px 12px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background var(--transition), transform var(--transition);
 }
 
-.btn-reject:hover {
-    background: var(--primary);
-    color: var(--highlight);
+.btn-reject:hover .btn-danger:hover {
+    background: var(--bs-success);
 }
 
 .btn-regular {
@@ -80,7 +110,6 @@ body {
     border-radius: var(--border-radius-small);
     padding: 4px 12px;
     font-size: 0.95rem;
-    box-shadow: var(--shadow);
     cursor: pointer;
     transition: background var(--transition), transform var(--transition);
 }
@@ -123,6 +152,58 @@ body {
 }
 
 
+/* generic input styles */
+
+.input-controls {
+    display: flex;
+    align-items: center;
+}
+.input-controls input {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 1rem;
+    outline: none;
+    transition: border var(--transition);
+}
+
+.input-controls input:focus {
+    border-color: var(--highlight);
+}
+
+.input-controls .btn-regular {
+    background: var(--highlight);
+    color: var(--primary);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--transition), color var(--transition);
+}
+
+.input-controls .btn-regular:hover {
+    background: var(--accent);
+}
+
+.input-controls .btn-reject {
+    background: var(--highlight);
+    color: var(--primary);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--transition), color var(--transition);
+}
+
+.input-controls .btn-reject:hover {
+    background: var(--bs-success);
+}
+
+
 /* Chat Form */
 
 .chat-container {
@@ -152,7 +233,9 @@ body {
     padding: 4px 12px;
 }
 
+
 /* message list */
+
 .message-list-header {
     display:flex;
     margin-bottom: 1.0rem;
@@ -181,39 +264,7 @@ body {
     color: var(--highlight);
 }
 
-/* Generic input styles */
-.input-controls {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-}
-.input-controls input {
-    background: var(--bg);
-    color: var(--text);
-    border: 1px solid var(--accent);
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 1rem;
-    outline: none;
-    transition: border var(--transition);
-}
-.input-controls input:focus {
-    border-color: var(--highlight);
-}
-.input-controls button {
-    background: var(--highlight);
-    color: var(--primary);
-    border: none;
-    border-radius: 8px;
-    padding: 8px 20px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background var(--transition), color var(--transition);
-}
-.input-controls button:hover {
-    background: var(--accent);
-    color: var(--text);
-}
+
 
 /* Chat members styles */
 .members-panel {
@@ -239,8 +290,9 @@ body {
     padding: 8px 16px;
 }
 
-/* Button styles */
+
 /* invitaiton styles (invitation modal) */
+
 .invite-section {
     margin-top: 18px;
     display: flex;
@@ -289,60 +341,6 @@ body {
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-}
-
-
-/* Modal (Create Chat) */
-.modal {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(60,70,123,0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
-.modal-content {
-    background: var(--card-bg);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow);
-    padding: 40px 32px;
-    min-width: 340px;
-    max-width: 420px;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-}
-.modal-content input, .modal-content button {
-    margin-top: 8px;
-}
-
-@media (max-width: 900px) {
-    .app-layout {
-        flex-direction: column;
-    }
-    .sidebar {
-        width: 100%;
-        min-height: 80px;
-        flex-direction: row;
-        justify-content: space-between;
-        padding: 16px 24px;
-    }
-    .section {
-        margin: 12px 8px;
-        padding: 12px;
-    }
-}
-
-@media (max-width: 600px) {
-    .modal-content {
-        min-width: 90vw;
-        padding: 24px 8px;
-    }
-    .section, .chat-container {
-        padding: 8px;
-        margin: 8px 0;
-    }
 }
 
 /* Scrollbar */
