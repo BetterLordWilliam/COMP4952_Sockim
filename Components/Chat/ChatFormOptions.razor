@@ -32,14 +32,14 @@
                 <p class="invite-status">@_inviteStatus</p>
             }
         </div>
-        @if (ChatMembers is not null && ChatDto is not null && ChatMembers.Count > 0)
+        @if (User is not null && ChatMembers is not null && ChatDto is not null && ChatMembers.Count > 0)
         {
             <ul class="members-list">
                 @foreach (var member in ChatMembers)
                 {
                     <li class="member-item">
                         <span class="member-email">@member.Email</span>
-                        @if (User?.Id == ChatDto.ChatOwnerId && member.Id != ChatDto.ChatOwnerId)
+                        @if (member.Id != ChatDto.ChatOwnerId && member.Id != User.Id)
                         {
                             <button type="button" class="btn-danger" @onclick="() => RemoveMember(member.Id)" title="Remove member">Remove</button>
                         }

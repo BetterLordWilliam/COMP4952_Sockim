@@ -123,7 +123,7 @@
             try
             {
                 await ChatHubConnection.SendAsync("AddChat", chatDto);
-                await ChatHubConnection.SendAsync("InviteUsersToChat", chatDto, User, _emails);
+                // await ChatHubConnection.SendAsync("InviteUsersToChat", chatDto, User, _emails);
             }
             catch (Exception ex)
             {

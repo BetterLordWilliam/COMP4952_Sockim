@@ -76,19 +76,13 @@ public class ChatHub : Hub
 #endregion
 #region:Chat
 
-    public async Task AddChat(ChatDto chatDto, List<ChatInvitationDto> invitations)
+    public async Task AddChat(ChatDto chatDto)
     {
         try
         {
             _logger.LogInformation($"Adding new chat: {chatDto.ChatName}");
 
-            ChatDto? createdChat = await _chatService.CreateChat(chatDto);
-            if (createdChat == null)
-            {
-                _logger.LogError("Failed to create chat");
-                await Clients.Caller.SendAsync("Error", new { message = "Failed to create chat" });
-                return;
-            }
+            ChatDto createdChat = await _chatService.CreateChat(chatDto);
 
             // bool success = await _invitationService.AddInvitations(invitations.ToArray());
 
@@ -131,7 +125,6 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = $"could not create chat for owner {chatDto.ChatOwnerEmail}, owner id {chatDto.ChatOwnerId}",
-                Exception = ex
             });
         }
         catch (ChatException ex)
@@ -140,7 +133,6 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = "Failed to create chat",
-                Exception = ex
             });
         }
     }
@@ -168,7 +160,6 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
         catch (ChatException ex)
@@ -179,7 +170,6 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
     }
@@ -199,7 +189,6 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
     }
@@ -241,7 +230,6 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
         catch (ChatUserNotFoundException ex)
@@ -252,7 +240,6 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
         catch (Exception ex) when (ex is ChatUserException || ex is ChatException)
@@ -263,7 +250,6 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
     }
@@ -306,7 +292,6 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
         catch (ChatUserNotFoundException ex)
@@ -317,7 +302,6 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
         catch (ChatOwnerCannotBeRemovedException ex)
@@ -328,7 +312,6 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
         catch (Exception ex) when (ex is ChatException || ex is ChatUserException)
@@ -339,7 +322,6 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
     }
@@ -364,7 +346,6 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
         catch (ChatException ex)
@@ -375,7 +356,6 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
     }
@@ -406,7 +386,6 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
     }
@@ -436,7 +415,6 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
     }
@@ -460,7 +438,6 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
     }
@@ -500,7 +477,6 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
         catch (ChatUserNotFoundException ex)
@@ -511,7 +487,6 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
         catch (Exception ex) when (ex is ChatException || ex is ChatUserException || ex is ChatInvitationException)
@@ -522,7 +497,6 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
     }
@@ -546,7 +520,6 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
     }

@@ -8,5 +8,4 @@ namespace COMP4952_Sockim.Models;
 public class SockimError
 {
     public required string Message { get; set; }
-    public required Exception Exception { get; set; }
 }

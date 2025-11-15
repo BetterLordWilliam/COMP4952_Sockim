@@ -98,7 +98,6 @@ public class MessageHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
     }
@@ -120,7 +119,6 @@ public class MessageHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
         catch (ChatMessageException ex)
@@ -131,7 +129,6 @@ public class MessageHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
     }
@@ -156,7 +153,6 @@ public class MessageHub : Hub
             await Clients.Caller.SendAsync("Error", new SockimError()
             {
                 Message = msg,
-                Exception = ex
             });
         }
     }

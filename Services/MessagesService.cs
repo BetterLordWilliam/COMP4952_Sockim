@@ -33,15 +33,17 @@ public class MessagesService
                 ChatId = messageDto.ChatId,
                 ChatUserId = messageDto.ChatUserId,
                 MessageContent = messageDto.MessageContent,
-                MessageDateTime = DateTime.UtcNow
+                MessageDateTime = messageDto.MessageDateTime
             };
 
             _chatDbContext.Messages.Add(message);
+
             await _chatDbContext.SaveChangesAsync();
+            messageDto.Id = message.Id;
 
             _logger.LogInformation($"Message {message.Id} added to chat {message.ChatId}");
 
-            return ConvertToDto(message);
+            return messageDto;
         }
         catch (DbUpdateConcurrencyException ex)
         {
@@ -85,7 +87,9 @@ public class MessagesService
             } 
 
             chatMessage.MessageContent = messageDto.MessageContent;
+
             await _chatDbContext.SaveChangesAsync();
+
             return messageDto;
         }
         catch (DbUpdateConcurrencyException ex)

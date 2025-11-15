@@ -25,7 +25,7 @@ public class ChatService
     /// <returns></returns>
     /// <exception cref="ChatOwnerNotFound"></exception>
     /// <exception cref="ChatException"></exception>
-    public async Task<ChatDto?> CreateChat(ChatDto chatDto)
+    public async Task<ChatDto> CreateChat(ChatDto chatDto)
     {
         try
         {
