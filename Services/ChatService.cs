@@ -31,7 +31,8 @@ public class ChatService
         {
             ChatUser? owner = await _chatDbContext.Users
                 .FirstOrDefaultAsync(u => u.Id == chatDto.ChatOwnerId);
-            if (owner == null)
+
+            if (owner is null)
             {
                 _logger.LogError($"Owner with ID {chatDto.ChatOwnerId} not found");
                 throw new ChatOwnerNotFound($"owner with id {chatDto.ChatOwnerId}");
@@ -55,46 +56,70 @@ public class ChatService
         catch (OperationCanceledException ex)
         {
             _logger.LogError($"database operation cancelled while creating chat: {ex.Message}");
-            throw new ChatException("could not create chat");
+            throw new ChatException();
         }
         catch (DbUpdateConcurrencyException ex)
         {
             _logger.LogError($"database update concurrency error while creating chat: {ex.Message}");
-            throw new ChatException("internal error could not create chat");
+            throw new ChatException();
         }
         catch (DbUpdateException ex)
         {
             _logger.LogError($"database update error while creating chat: {ex.Message}");
-            throw new ChatException("internal error could not create chat");
+            throw new ChatException();
+        }
+        catch (ArgumentNullException ex)
+        {
+            _logger.LogError($"database operation failed while creating chat {ex.Message}");
+            throw new ChatException();
         }
     }
 
     /// <summary>
-    /// Gets a chat by its ID (non-tracking).
+    /// Gets a chat by it's id.
     /// </summary>
-    public async Task<Chat?> GetChatById(int id)
+    /// <param name="id"></param>
+    /// <returns></returns>
+    /// <exception cref="ChatNotFoundException"></exception>
+    /// <exception cref="ChatException"></exception>
+    public async Task<ChatDto> GetChatById(int id)
     {
         try
         {
-            return await _chatDbContext.Chats
+            Chat? chat = await _chatDbContext.Chats
                 .Include(c => c.ChatOwner)
                 .Include(c => c.ChatUsers)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Id == id);
+
+            if (chat is null)
+            {
+                _logger.LogError($"no such chat, {id}");
+                throw new ChatNotFoundException();
+            }
+
+            return ConvertToDto(chat);
         }
         catch (OperationCanceledException ex)
         {
-            _logger.LogError($"Operation cancelled while getting chat: {ex.Message}");
-            return null;
+            _logger.LogError($"operation cancelled while getting chat: {ex.Message}");
+            throw new ChatException();
+        }
+        catch (ArgumentNullException ex)
+        {
+            _logger.LogError($"operation failed while getting chat: {ex.Message}");
+            throw new ChatException();
         }
     }
 
     /// <summary>
-    /// Will apply the differences in the incoming chatDto to the chat entity in the database.
+    /// Updates the properties of a chat (ie. renaming).
     /// </summary>
     /// <param name="chatDto"></param>
     /// <returns></returns>
-    public async Task<ChatDto?> UpdateChat(ChatDto chatDto)
+    /// <exception cref="ChatNotFoundException"></exception>
+    /// <exception cref="ChatException"></exception>
+    public async Task<ChatDto> UpdateChat(ChatDto chatDto)
     {
         try
         {
@@ -103,7 +128,10 @@ public class ChatService
                 .FirstOrDefaultAsync();
 
             if (chat is null)
-                throw new Exception("no such chat exists.");
+            {
+                _logger.LogError($"no such chat {chatDto.Id}");
+                throw new ChatNotFoundException();
+            }
 
             chat.ChatName = chatDto.ChatName;
             chat.ChatOwnerId = chatDto.ChatOwnerId;
@@ -112,16 +140,34 @@ public class ChatService
 
             return ConvertToDto(chat);
         }
-        catch (Exception ex)
+        catch (OperationCanceledException ex)
         {
-            _logger.LogError($"error while updating chat: {ex.Message}");
-            return null;
+            _logger.LogError($"operation cancelled while updating chat: {ex.Message}");
+            throw new ChatException();
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            _logger.LogError($"operation concurrency error while updating chat: {ex.Message}");
+            throw new ChatException();
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError($"operation update errror while updating chat: {ex.Message}");
+            throw new ChatException();
+        }
+        catch (ArgumentNullException ex)
+        {
+            _logger.LogError($"operation failed while getting chat: {ex.Message}");
+            throw new ChatException();
         }
     }
 
     /// <summary>
-    /// Gets all chats for a specific user (non-tracking).
+    /// Gets all the chats for a user.
     /// </summary>
+    /// <param name="userId"></param>
+    /// <returns></returns>
+    /// <exception cref="ChatException"></exception>
     public async Task<ChatDto[]> GetChatsForUser(int userId)
     {
         try
@@ -141,22 +187,25 @@ public class ChatService
                 ChatOwnerEmail = c.ChatOwner.Email ?? string.Empty
             }).ToArray();
         }
-        catch (NullReferenceException ex)
-        {
-            _logger.LogError($"Null reference error: {ex.Message}");
-            return Array.Empty<ChatDto>();
-        }
         catch (OperationCanceledException ex)
         {
-            _logger.LogError($"Operation cancelled: {ex.Message}");
-            return Array.Empty<ChatDto>();
+            _logger.LogError($"retriving chats for user operation cancelled: {ex.Message}");
+            throw new ChatException();
+        }
+        catch (ArgumentNullException ex)
+        {
+            _logger.LogError($"operation failed while getting chats for user {userId}: {ex.Message}");
+            throw new ChatException();
         }
     }
 
     /// <summary>
-    /// Gets all chat members (non-tracking) including owner.
-    /// Useful for displaying members and managing who can remove users.
+    /// Gets all users of a chat.
     /// </summary>
+    /// <param name="chatId"></param>
+    /// <returns></returns>
+    /// <exception cref="ChatNotFoundException"></exception>
+    /// <exception cref="ChatException"></exception>
     public async Task<ChatUserDto[]> GetChatMembers(int chatId)
     {
         try
@@ -166,10 +215,10 @@ public class ChatService
                 .AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Id == chatId);
 
-            if (chat == null)
+            if (chat is null)
             {
                 _logger.LogWarning($"Chat {chatId} not found when retrieving members");
-                return Array.Empty<ChatUserDto>();
+                throw new ChatNotFoundException();
             }
 
             return chat.ChatUsers
@@ -180,18 +229,28 @@ public class ChatService
                 })
                 .ToArray();
         }
-        catch (Exception ex)
+        catch (OperationCanceledException ex)
         {
-            _logger.LogError($"Error retrieving chat members for chat {chatId}: {ex.Message}");
-            return Array.Empty<ChatUserDto>();
+            _logger.LogError($"retriving chat members operation cancelled: {ex.Message}");
+            throw new ChatException();
+        }
+        catch (ArgumentNullException ex)
+        {
+            _logger.LogError($"operation failed while getting member for chat {chatId}: {ex.Message}");
+            throw new ChatException();
         }
     }
 
     /// <summary>
     /// Adds a user to a chat.
-    /// Pure CRUD operation - adds ChatUser relationship without any orchestration.
     /// </summary>
-    public async Task<bool> AddUserToChat(int chatId, int userId)
+    /// <param name="chatId"></param>
+    /// <param name="userId"></param>
+    /// <returns></returns>
+    /// <exception cref="ChatNotFoundException"></exception>
+    /// <exception cref="ChatUserNotFoundException"></exception>
+    /// <exception cref="ChatException"></exception>
+    public async Task AddUserToChat(int chatId, int userId)
     {
         try
         {
@@ -202,41 +261,60 @@ public class ChatService
             if (chat == null)
             {
                 _logger.LogError($"Chat with ID {chatId} not found");
-                return false;
+                throw new ChatNotFoundException();
             }
 
             ChatUser? user = await _chatDbContext.Users.FindAsync(userId);
             if (user == null)
             {
                 _logger.LogError($"User with ID {userId} not found");
-                return false;
+                throw new ChatUserNotFoundException();
             }
 
-            // Check if user is already in chat
             if (chat.ChatUsers.Any(cu => cu.Id == userId))
             {
                 _logger.LogWarning($"User {userId} is already in chat {chatId}");
-                return false;
+                throw new ChatException("cannot add user to the chat, they are already a member");
             }
 
             chat.ChatUsers.Add(user);
             await _chatDbContext.SaveChangesAsync();
 
             _logger.LogInformation($"User {userId} added to chat {chatId}");
-            return true;
         }
-        catch (Exception ex)
+        catch (DbUpdateConcurrencyException ex)
         {
-            _logger.LogError($"Error adding user to chat: {ex.Message}");
-            return false;
+            _logger.LogError($"adding user {userId} to chat {chatId} failed, concurrency error: {ex.Message}");
+            throw new ChatException();
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError($"adding user {userId} to chat {chatId} failed: {ex.Message}");
+            throw new ChatException();
+        }
+        catch (OperationCanceledException ex)
+        {
+            _logger.LogError($"operation cancelled while adding {userId} to chat {chatId}: {ex.Message}");
+            throw new ChatException();
+        }
+        catch (ArgumentNullException ex)
+        {
+            _logger.LogError($"operation failed while adding {userId} to chat {chatId}: {ex.Message}");
+            throw new ChatException();
         }
     }
 
     /// <summary>
     /// Removes a user from a chat.
-    /// Can only be called if the requester is the chat owner (business logic in hub).
     /// </summary>
-    public async Task<bool> RemoveUserFromChat(int chatId, int userId)
+    /// <param name="chatId"></param>
+    /// <param name="userId"></param>
+    /// <returns></returns>
+    /// <exception cref="ChatNotFoundException"></exception>
+    /// <exception cref="ChatUserNotFoundException"></exception>
+    /// <exception cref="ChatOwnerCannotBeRemovedException"></exception>
+    /// <exception cref="ChatException"></exception>
+    public async Task RemoveUserFromChat(int chatId, int userId)
     {
         try
         {
@@ -247,33 +325,36 @@ public class ChatService
             if (chat == null)
             {
                 _logger.LogError($"Chat {chatId} not found");
-                return false;
+                throw new ChatNotFoundException();
             }
 
             ChatUser? user = chat.ChatUsers.FirstOrDefault(u => u.Id == userId);
             if (user == null)
             {
                 _logger.LogWarning($"User {userId} not found in chat {chatId}");
-                return false;
+                throw new ChatUserNotFoundException($"user with id {userId} not found for chat {chatId}");
             }
 
-            // Don't allow removing the owner
             if (chat.ChatOwnerId == userId)
             {
                 _logger.LogWarning($"Cannot remove chat owner {userId} from chat {chatId}");
-                return false;
+                throw new ChatOwnerCannotBeRemovedException();
             }
 
             chat.ChatUsers.Remove(user);
             await _chatDbContext.SaveChangesAsync();
 
             _logger.LogInformation($"User {userId} removed from chat {chatId}");
-            return true;
         }
-        catch (Exception ex)
+        catch (OperationCanceledException ex)
         {
-            _logger.LogError($"Error removing user from chat: {ex.Message}");
-            return false;
+            _logger.LogError($"operation cancelled while removing user from chat: {ex.Message}");
+            throw new ChatException();
+        }
+        catch (ArgumentNullException ex)
+        {
+            _logger.LogError($"error removing user from chat: {ex.Message}");
+            throw new ChatException();
         }
     }
 

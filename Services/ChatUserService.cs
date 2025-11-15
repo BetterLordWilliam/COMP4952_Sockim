@@ -32,7 +32,10 @@ public class ChatUserService
                 .FirstOrDefault();
 
             if (user is null)
-                throw new ChatUserException($"user does not exist with id {id}");
+            {
+                _logger.LogError($"user not found with id {id}");
+                throw new ChatUserNotFoundException($"user does not exist with id {id}");
+            }
 
             _logger.LogInformation($"found user: {user.Email}");
 
@@ -62,7 +65,10 @@ public class ChatUserService
                 .FirstOrDefault();
 
             if (user is null)
-                throw new ChatUserDoesNotExistException($"user does not exist with email {email}");
+            {
+                _logger.LogError($"user not found with email {email}");
+                throw new ChatUserNotFoundException($"user does not exist with email {email}");
+            }
 
             _logger.LogInformation($"found user: {user.Email}");
 

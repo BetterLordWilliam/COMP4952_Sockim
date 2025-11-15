@@ -1,6 +1,8 @@
 using System;
 using COMP4952_Sockim.Data;
 using COMP4952_Sockim.Models;
+using COMP4952_Sockim.Services.Exceptions;
+using Microsoft.DotNet.Scaffolding.Shared.Messaging;
 using Microsoft.EntityFrameworkCore;
 
 namespace COMP4952_Sockim.Services;
@@ -17,9 +19,11 @@ public class MessagesService
     }
 
     /// <summary>
-    /// Adds a new chat message to the database from a DTO.
-    /// Sets MessageDateTime to current UTC time.
+    /// Adds message to a chat.
     /// </summary>
+    /// <param name="messageDto"></param>
+    /// <returns></returns>
+    /// <exception cref="ChatMessageException"></exception>
     public async Task<ChatMessageDto> AddChatMessage(ChatMessageDto messageDto)
     {
         try
@@ -37,25 +41,27 @@ public class MessagesService
 
             _logger.LogInformation($"Message {message.Id} added to chat {message.ChatId}");
 
-            return new ChatMessageDto
-            {
-                Id = message.Id,
-                ChatId = message.ChatId,
-                ChatUserId = message.ChatUserId,
-                SenderEmail = messageDto.SenderEmail,
-                MessageDateTime = message.MessageDateTime,
-                MessageContent = message.MessageContent
-            };
+            return ConvertToDto(message);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            _logger.LogError($"database concurrency error while adding message. {ex.Message}");
+            throw new ChatMessageException();
         }
         catch (DbUpdateException ex)
         {
-            _logger.LogError($"Database error while adding message: {ex.Message}");
-            throw;
+            _logger.LogError($"database error while adding message: {ex.Message}");
+            throw new ChatMessageException();
         }
-        catch (Exception ex)
+        catch (OperationCanceledException ex)
         {
-            _logger.LogError($"Error while adding message: {ex.Message}");
-            throw;
+            _logger.LogError($"operation cancelled error while adding message: {ex.Message}");
+            throw new ChatMessageException();
+        }
+        catch (ArgumentNullException ex)
+        {
+            _logger.LogError($"error while adding message: {ex.Message}");
+            throw new ChatMessageException();
         }
     }
 
@@ -64,27 +70,41 @@ public class MessagesService
     /// </summary>
     /// <param name="messageDto"></param>
     /// <returns></returns>
-    public async Task<ChatMessageDto?> UpdateChatMessage(ChatMessageDto messageDto)
+    public async Task<ChatMessageDto> UpdateChatMessage(ChatMessageDto messageDto)
     {
         try
         {
             ChatMessage? chatMessage = await _chatDbContext.Messages.Where(c => c.Id == messageDto.Id).FirstOrDefaultAsync();
 
-            if (chatMessage is not null)
+            if (chatMessage is null)
             {
-                chatMessage.MessageContent = messageDto.MessageContent;
-                await _chatDbContext.SaveChangesAsync();
-                return messageDto;
+                _logger.LogError($"no such message {messageDto.Id}, in chat {messageDto.ChatId}");
+                throw new ChatMessageNotFoundException("No such message");
             } 
-            else
-            {
-                throw new Exception("No such message");
-            }
+
+            chatMessage.MessageContent = messageDto.MessageContent;
+            await _chatDbContext.SaveChangesAsync();
+            return messageDto;
         }
-        catch (Exception ex)
+        catch (DbUpdateConcurrencyException ex)
         {
-            _logger.LogError($"Error while updating message: {ex.Message}");
-            return null;
+            _logger.LogError($"database concurrency error while updating message. {ex.Message}");
+            throw new ChatMessageException();
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError($"database error while updating message: {ex.Message}");
+            throw new ChatMessageException();
+        }
+        catch (OperationCanceledException ex)
+        {
+            _logger.LogError($"operation cancelled error while updating message: {ex.Message}");
+            throw new ChatMessageException();
+        }
+        catch (ArgumentNullException ex)
+        {
+            _logger.LogError($"error while updating message: {ex.Message}");
+            throw new ChatMessageException();
         }
     }
 
@@ -103,25 +123,17 @@ public class MessagesService
                 .AsNoTracking()
                 .ToArrayAsync();
 
-            return messages.Select(m => new ChatMessageDto
-            {
-                Id = m.Id,
-                ChatId = m.ChatId,
-                ChatUserId = m.ChatUserId,
-                SenderEmail = m.ChatUser?.Email ?? string.Empty,
-                MessageDateTime = m.MessageDateTime,
-                MessageContent = m.MessageContent
-            }).ToArray();
+            return messages.Select(m => ConvertToDto(m)).ToArray();
         }
         catch (OperationCanceledException ex)
         {
             _logger.LogError($"Operation cancelled while retrieving messages for chat {chatId}: {ex.Message}");
-            return Array.Empty<ChatMessageDto>();
+            throw new ChatMessageException();
         }
-        catch (Exception ex)
+        catch (ArgumentNullException ex)
         {
             _logger.LogError($"Error retrieving messages for chat {chatId}: {ex.Message}");
-            return Array.Empty<ChatMessageDto>();
+            throw new ChatMessageException();
         }
     }
 

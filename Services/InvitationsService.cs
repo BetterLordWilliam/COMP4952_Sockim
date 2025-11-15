@@ -82,22 +82,22 @@ public class InvitationsService
         catch (OperationCanceledException ex)
         {
             _logger.LogError($"add invitation operation cancelled: {ex.Message}");
-            throw new ChatInvitationException("could not invite user");
+            throw new ChatInvitationException();
         }
         catch (DbUpdateConcurrencyException ex)
         {
             _logger.LogError($"could not add multiple invitations, concurrency exception: {ex.Message}");
-            throw new ChatInvitationException($"could not invite user {invitationDto.ReceiverEmail}");
+            throw new ChatInvitationException();
         }
         catch (DbUpdateException ex)
         {
             _logger.LogError($"could not add invitation for {invitationDto.ReceiverId} to chat {invitationDto.ChatId}: {ex.Message}");
-            throw new ChatInvitationException($"could not invite user {invitationDto.ReceiverEmail}");
+            throw new ChatInvitationException();
         }
         catch (ArgumentNullException ex)
         {
             _logger.LogError($"could not add invitation: {ex.Message}");
-            throw new ChatInvitationException("could not invite user");
+            throw new ChatInvitationException();
         }
     }
 
