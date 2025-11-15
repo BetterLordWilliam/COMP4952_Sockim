@@ -19,7 +19,7 @@ public class MessagesService
     }
 
     /// <summary>
-    /// Adds message to a chat.
+    /// Adds a chat message.
     /// </summary>
     /// <param name="messageDto"></param>
     /// <returns></returns>
@@ -66,10 +66,12 @@ public class MessagesService
     }
 
     /// <summary>
-    /// Updates the chat message entity in the database.
+    /// Updates a chat message.
     /// </summary>
     /// <param name="messageDto"></param>
     /// <returns></returns>
+    /// <exception cref="ChatMessageNotFoundException"></exception>
+    /// <exception cref="ChatMessageException"></exception>
     public async Task<ChatMessageDto> UpdateChatMessage(ChatMessageDto messageDto)
     {
         try
@@ -109,9 +111,11 @@ public class MessagesService
     }
 
     /// <summary>
-    /// Retrieves chat messages for a specific chat (non-tracking).
-    /// Returns messages ordered by datetime (ascending).
+    /// Retrieves messages for a chat.
     /// </summary>
+    /// <param name="chatId"></param>
+    /// <returns></returns>
+    /// <exception cref="ChatMessageException"></exception>
     public async Task<ChatMessageDto[]> GetChatMessages(int chatId)
     {
         try
