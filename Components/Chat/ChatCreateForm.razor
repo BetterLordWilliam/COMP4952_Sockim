@@ -19,41 +19,38 @@
     <div class="modal-content input-controls">
         <h3>Create a New Chat</h3>
         <form @onsubmit="OnChatCreateSubmit">
-            <div class="">
-                <label for="chat-name">
-                    Chat name: <br />
-                    <input  id="chat-name"
-                            type="text"
-                            placeholder="Specify chat name"
-                            @bind-value="_chatName" />
-                </label>
-            </div>
-            <div class="">
-                <label for="user-emails">User emails (space separated):</label>
-                @if(_isBadEmail)
-                {
-                    <div class="error-message">
-                        @_badEmailMessage: @_badEmail
-                    </div>
-                }
-                <div class="email-list">
-                    @{
-                        int i = 0;
-                        foreach (var email in _emails)
-                        {
-                            if (i == 0) { <span>@email</span> } else { <span>, @email</span> }
-                            <button type="button" class="btn-remove" @onclick="() => RemoveEmail(email)" title="Remove email">Remove</button>
-                            i++;
-                        }
-                    }
+            <label for="chat-name">Chat name:</label>
+            <br />
+            <input  id="chat-name"
+                    class="input-full-width"
+                    type="text"
+                    placeholder="Specify chat name"
+                    @bind-value="_chatName" />
+            <label for="user-emails">User emails (space separated):</label>
+            @if(_isBadEmail)
+            {
+                <div class="error-message">
+                    @_badEmailMessage: @_badEmail
                 </div>
-                <input  id="user-emails"
-                        type="text"
-                        placeholder="Add user email"
-                        @bind-value=_newEmail
-                        @bind-value:event="oninput"
-                        @onkeydown="AddEmail" />
+            }
+            <div class="email-list">
+                @{
+                    int i = 0;
+                    foreach (var email in _emails)
+                    {
+                        if (i == 0) { <span>@email</span> } else { <span>, @email</span> }
+                        <button type="button" class="btn-remove" @onclick="() => RemoveEmail(email)" title="Remove email">Remove</button>
+                        i++;
+                    }
+                }
             </div>
+            <input  id="user-emails"
+                    class="input-full-width"
+                    type="text"
+                    placeholder="Add user email"
+                    @bind-value=_newEmail
+                    @bind-value:event="oninput"
+                    @onkeydown="AddEmail" />
             <button class="btn-regular" type="submit">Create</button>
             <button class="btn-reject" type="button" @onclick="OnClose">Close</button>
         </form>

@@ -68,54 +68,27 @@ body {
 
 /* Buttons */
 
-.btn-accept, .btn-reject {
+.btn-regular, .btn-accept, .btn-reject, .btn-danger {
     border: none;
+    background: var(--primary);
     border-radius: var(--border-radius-small);
-    padding: 8px 18px;
-    font-size: 1.1rem;
-    font-weight: 600;
+    color: var(--text);
+    padding: 4px 12px;
+    font-size: 0.95rem;
     cursor: pointer;
     transition: background var(--transition), color var(--transition);
 }
 
-.btn-accept {
-    background: var(--highlight);
-    color: var(--primary);
+.btn-regular:hover {
+    background: var(--accent);
 }
 
 .btn-accept:hover {
-    background: var(--accent);
-    color: var(--text);
+    background: var(--highlight);
 }
 
-.btn-reject .btn-danger {
-    background: var(--primary);
-    color: var(--text);
-    border: none;
-    border-radius: var(--border-radius-small);
-    padding: 4px 12px;
-    font-size: 0.95rem;
-    cursor: pointer;
-    transition: background var(--transition), transform var(--transition);
-}
-
-.btn-reject:hover .btn-danger:hover {
+.btn-reject:hover, .btn-danger:hover {
     background: var(--bs-success);
-}
-
-.btn-regular {
-    background: var(--primary);
-    color: var(--text);
-    border: none;
-    border-radius: var(--border-radius-small);
-    padding: 4px 12px;
-    font-size: 0.95rem;
-    cursor: pointer;
-    transition: background var(--transition), transform var(--transition);
-}
-
-.btn-regular:hover {
-    background: var(--accent);
 }
 
 .btn-regular-expand {
@@ -156,7 +129,7 @@ body {
 
 .input-controls {
     display: flex;
-    align-items: center;
+    flex-direction: column;
 }
 .input-controls input {
     background: var(--bg);
@@ -173,10 +146,7 @@ body {
     border-color: var(--highlight);
 }
 
-.input-controls .btn-regular {
-    background: var(--highlight);
-    color: var(--primary);
-    border: none;
+.input-controls .btn-regular, .btn-accept {
     border-radius: 8px;
     padding: 8px 20px;
     font-weight: 600;
@@ -184,14 +154,11 @@ body {
     transition: background var(--transition), color var(--transition);
 }
 
-.input-controls .btn-regular:hover {
+.input-controls .btn-regular:hover, .btn-accept:hover {
     background: var(--accent);
 }
 
 .input-controls .btn-reject {
-    background: var(--highlight);
-    color: var(--primary);
-    border: none;
     border-radius: 8px;
     padding: 8px 20px;
     font-weight: 600;
@@ -288,59 +255,6 @@ body {
     background: rgba(60,70,123,0.10);
     border-radius: 8px;
     padding: 8px 16px;
-}
-
-
-/* invitaiton styles (invitation modal) */
-
-.invite-section {
-    margin-top: 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-.invite-section input {
-    background: var(--bg);
-    color: var(--text);
-    border: 1px solid var(--accent);
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 1rem;
-    outline: none;
-    transition: border var(--transition);
-}
-.invite-section input:focus {
-    border-color: var(--highlight);
-}
-.invite-section button {
-    background: var(--highlight);
-    color: var(--primary);
-    border: none;
-    border-radius: 8px;
-    padding: 8px 20px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background var(--transition), color var(--transition);
-}
-.invite-section button:hover {
-    background: var(--accent);
-    color: var(--text);
-}
-.invite-status {
-    color: var(--highlight);
-    font-weight: 500;
-    margin-top: 4px;
-}
-.invitation-item {
-    background: var(--card-bg);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow);
-    padding: 18px 24px;
-    margin-bottom: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
 }
 
 /* Scrollbar */
