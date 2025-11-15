@@ -67,8 +67,8 @@
                 </div>
             } else {
                 <h2>@ChatDto.ChatName</h2>
+                <button class="btn-remove" type="button" @onclick="@RenameChat">Rename</button>
             }
-            <button class="btn-remove" type="button" @onclick="@RenameChat">Rename</button>
             @if (User?.Id == ChatDto.ChatOwnerId)
             {
                 <div class="owner-controls">
@@ -94,13 +94,13 @@
                                 } else {
                                     <p class="message-text">@message.MessageContent</p>
                                 }
+                                @if(message.ChatUserId == User.Id) {
+                                    <button class="btn-remove" type="button" disabled="@_editMessage"
+                                            @onclick="() => EditMesssage(message)" >
+                                        Edit
+                                    </button>
+                                }
                             </li>
-                            @if(message.ChatUserId == User.Id) {
-                                <button class="btn-remove" type="button" disabled="@_editMessage"
-                                        @onclick="() => EditMesssage(message)" >
-                                    Edit
-                                </button>
-                            }
                         }
                     }
                 </ul>
