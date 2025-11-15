@@ -1,9 +1,9 @@
 @implements IDisposable
 @inject NavigationManager NavigationManager
 
-<div class="navbar">
-    <AuthorizeView>
-        <Authorized>
+<AuthorizeView>
+    <Authorized>
+        <div class="navbar">
             <div class="navbar-brand">
                 sockim
             </div>
@@ -28,9 +28,9 @@
                     </form>
                 </div>
             </div>
-        </Authorized>
-    </AuthorizeView>
-</div>
+        </div>
+    </Authorized>
+</AuthorizeView>
 
 @code {
     private string? currentUrl;

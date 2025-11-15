@@ -2,9 +2,11 @@
 @inject AuthenticationStateProvider ASP
 
 <div class="page">
-    <div class="shadow-outline top-row">
-        <NavMenu />
-    </div>
+    @if (IsLoggedIn) {
+        <div class="shadow-outline top-row">
+            <NavMenu />
+        </div>
+    }
     <div class="@AppContentClass">
         @Body
     </div>

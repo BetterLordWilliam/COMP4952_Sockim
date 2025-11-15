@@ -20,62 +20,17 @@
 
 <button type="button" class="btn-remove" @onclick="CloseChat">Close</button>
 <button type="button" class="btn-remove" @onclick="@OpenChatOptions">Chat Options</button>
+
 @if(_showChatOptions) {
-    <div class="modal">
-        <div class="modal-content members-panel">
-            <h3>Members</h3>
-            @if (_chatMembers != null && _chatMembers.Count > 0)
-            {
-                <ul class="members-list">
-                    @foreach (var member in _chatMembers)
-                    {
-                        <li class="member-item">
-                            <span class="member-email">@member.Email</span>
-                            @if (User?.Id == ChatDto.ChatOwnerId && member.Id != ChatDto.ChatOwnerId)
-                            {
-                                <button type="button" class="btn-remove" @onclick="() => RemoveMember(member.Id)" title="Remove member">Remove</button>
-                            }
-                        </li>
-                    }
-                </ul>
-            }
-            <hr />
-            <div class="invite-section">
-                <h4>Invite Member</h4>
-                <input type="email" @bind="_inviteEmail" placeholder="Enter email address" />
-                <button type="button" class="invite-btn" @onclick="InviteMember">Invite</button>
-                <button type="button" class="btn-remove" @onclick="() => RemoveMember(User?.Id ?? 0)" disabled="@(User == null || _isOwner)">Leave</button>
-                @if (!string.IsNullOrEmpty(_inviteStatus))
-                {
-                    <p class="invite-status">@_inviteStatus</p>
-                }
-            </div>
-            <button class="btn-remove" type="button" @onclick="@CloseChatOptions">Close</button>
-        </div>
-    </div>
+    <ChatFormOptions    ChatMembers="@_chatMembers"
+                        ChatDto="@ChatDto"
+                        User="@User"
+                        ChatHubConnection="@ChatHubConnection"
+                        CloseChatOptions="@CloseChatOptions"></ChatFormOptions>
 }
+
 <div class="main-content chat-main-content">
     <section class="section chat-section">
-        <div class="chat-header">
-            @if(_editChatName) {
-                <h2>
-                    <input type="text" @bind-value="@_updatedChatName" />
-                </h2>
-                <div class="display:flex;flex-direction:row;">
-                    <button class="btn-remove" type="button" @onclick="SaveRenameChat">Save</button>
-                    <button class="btn-remove" type="button" @onclick="CancelRenameChat">Cancel</button>
-                </div>
-            } else {
-                <h2>@ChatDto.ChatName</h2>
-                <button class="btn-remove" type="button" @onclick="@RenameChat">Rename</button>
-            }
-            @if (User?.Id == ChatDto.ChatOwnerId)
-            {
-                <div class="owner-controls">
-                    <p><em>You are the chat owner</em></p>
-                </div>
-            }
-        </div>
         <div class="chat-content">
             <div class="message-list-wrapper" @ref="_messageListWrapper">
                 <ul class="message-list">
@@ -136,15 +91,11 @@
     private List<ChatMessageDto> _messages = [];
     private List<ChatUserDto> _chatMembers = [];
     private string _message = string.Empty;
-    private string _updatedMessage = string.Empty;
-    private string _updatedChatName = string.Empty;
-    private string _inviteEmail = string.Empty;
-    private string _inviteStatus = string.Empty;
+
     private int _editMessageId = -1;
-    private bool _isOwner => User.Id == ChatDto.ChatOwnerId;
     private bool _showChatOptions = false;
     private bool _editMessage = false;
-    private bool _editChatName = false;
+    private string _updatedMessage = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -222,33 +173,7 @@
         _showChatOptions = false;
     }
 
-    private void RenameChat()
-    {
-        _editChatName = true;
-        _updatedChatName = ChatDto.ChatName;
 
-        InvokeAsync(StateHasChanged);
-    }
-
-    private async void SaveRenameChat()
-    {
-        _editChatName = false;
-
-        if (ChatHubConnection is null)
-            return;
-
-        ChatDto.ChatName = _updatedChatName;
-
-        await ChatHubConnection.SendAsync("RenameChat", ChatDto);
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private void CancelRenameChat()
-    {
-        _editChatName = false;
-
-        InvokeAsync(StateHasChanged);
-    }
 
     private void EditMesssage(ChatMessageDto message)
     {
@@ -323,52 +248,6 @@
         catch (Exception ex)
         {
             Console.WriteLine($"Error sending message: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Invite a user to the chat by email.
-    /// Calls ChatHub to create the invitation.
-    /// </summary>
-    private async Task InviteMember()
-    {
-        if (string.IsNullOrWhiteSpace(_inviteEmail) || ChatHubConnection is null)
-        {
-            _inviteStatus = "Please enter a valid email address";
-            return;
-        }
-
-        try
-        {
-            await ChatHubConnection.SendAsync("InviteUserToChat", ChatDto.Id, User.Id, _inviteEmail);
-        }
-        catch (Exception ex)
-        {
-            _inviteStatus = $"Error: {ex.Message}";
-            Console.WriteLine($"Error inviting member: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Remove a member from the chat.
-    /// Only the chat owner can remove members.
-    /// Calls ChatHub to remove the user.
-    /// </summary>
-    private async Task RemoveMember(int memberId)
-    {
-        if (ChatHubConnection is null)
-        {
-            Console.WriteLine("ChatHub connection not available");
-            return;
-        }
-
-        try
-        {
-            await ChatHubConnection.SendAsync("RemoveUserFromChat", ChatDto.Id, User.Id, memberId);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error removing member: {ex.Message}");
         }
     }
 

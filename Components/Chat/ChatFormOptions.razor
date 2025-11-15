@@ -1,0 +1,158 @@
+﻿@using COMP4952_Sockim.Components.Account.Pages.Manage
+@using COMP4952_Sockim.Data
+@using COMP4952_Sockim.Models
+@using Microsoft.AspNetCore.SignalR.Client
+
+<div class="modal">
+    <div class="modal-content members-panel">
+        @if(_editChatName) {
+            <div class="input-controls">
+                <div class="rename-chat-controls">
+                    <h3><input type="text" @bind-value="@_updatedChatName" /></h3>
+                    <div class="rename-chat-options">
+                        <button class="btn-regular" type="button" @onclick="SaveRenameChat">Save</button>
+                        <button class="btn-danger" type="button" @onclick="CancelRenameChat">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        } else {
+            <div class="rename-chat-controls">
+                <h3 class="chat-name">@ChatDto?.ChatName</h3>
+                <button class="btn-regular rename-button" type="button" @onclick="@RenameChat">Rename</button>
+            </div>
+        }
+        <hr />
+        <h3>Chat Members</h3>
+        <div class="input-controls">
+            <input type="email" @bind="_inviteEmail" placeholder="Enter email address of new member" />
+            <button type="button" class="btn-regular" @onclick="InviteMember">Invite</button>
+            <button type="button" class="btn-danger" @onclick="() => RemoveMember(User?.Id ?? 0)" disabled="@(User == null || _isOwner)">Leave</button>
+            @if (!string.IsNullOrEmpty(_inviteStatus))
+            {
+                <p class="invite-status">@_inviteStatus</p>
+            }
+        </div>
+        @if (ChatMembers is not null && ChatDto is not null && ChatMembers.Count > 0)
+        {
+            <ul class="members-list">
+                @foreach (var member in ChatMembers)
+                {
+                    <li class="member-item">
+                        <span class="member-email">@member.Email</span>
+                        @if (User?.Id == ChatDto.ChatOwnerId && member.Id != ChatDto.ChatOwnerId)
+                        {
+                            <button type="button" class="btn-danger" @onclick="() => RemoveMember(member.Id)" title="Remove member">Remove</button>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+
+        <button class="btn-danger" type="button" @onclick="@CloseChatOptions">Close</button>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public List<ChatUserDto>? ChatMembers { get; set; }
+    [Parameter]
+    public ChatDto? ChatDto { get; set; }
+    [Parameter]
+    public ChatUser? User { get; set; }
+    [Parameter]
+    public HubConnection? ChatHubConnection { get; set; }
+    [Parameter]
+    public EventCallback CloseChatOptions { get; set; }
+
+    private bool _isOwner => User?.Id == ChatDto?.ChatOwnerId;
+    private bool _editChatName = false;
+    private string _inviteEmail = string.Empty;
+    private string _inviteStatus = string.Empty;
+    private string _updatedChatName = string.Empty;
+
+    private void RenameChat()
+    {
+        _editChatName = true;
+        _updatedChatName = ChatDto?.ChatName ?? string.Empty;
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async void SaveRenameChat()
+    {
+        _editChatName = false;
+
+        if (ChatHubConnection is null || ChatDto is null)
+            return;
+
+        ChatDto.ChatName = _updatedChatName;
+
+        await ChatHubConnection.SendAsync("RenameChat", ChatDto);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void CancelRenameChat()
+    {
+        _editChatName = false;
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Invite a user to the chat by email.
+    /// Calls ChatHub to create the invitation.
+    /// </summary>
+    private async Task InviteMember()
+    {
+        if (string.IsNullOrWhiteSpace(_inviteEmail) || ChatHubConnection is null)
+        {
+            _inviteStatus = "Please enter a valid email address";
+            return;
+        }
+
+        if (ChatDto is null || User is null)
+        {
+            Console.WriteLine("Invalid state");
+            return;
+        }
+
+        try
+        {
+            await ChatHubConnection.SendAsync("InviteUserToChat", ChatDto.Id, User.Id, _inviteEmail);
+        }
+        catch (Exception ex)
+        {
+            _inviteStatus = $"Error: {ex.Message}";
+            Console.WriteLine($"Error inviting member: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Remove a member from the chat.
+    /// Only the chat owner can remove members.
+    /// Calls ChatHub to remove the user.
+    /// </summary>
+    private async Task RemoveMember(int memberId)
+    {
+        if (ChatHubConnection is null)
+        {
+            Console.WriteLine("ChatHub connection not available");
+            return;
+        }
+
+        if (ChatDto is null || User is null)
+        {
+            Console.WriteLine("Invalid state");
+            return;
+        }
+
+        try
+        {
+            await ChatHubConnection.SendAsync("RemoveUserFromChat", ChatDto.Id, User.Id, memberId);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error removing member: {ex.Message}");
+        }
+    }
+}

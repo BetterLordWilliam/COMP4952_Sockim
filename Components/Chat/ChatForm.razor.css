@@ -1,0 +1,66 @@
+/* Chat Form */
+
+.chat-container {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    padding: 32px;
+    margin: 24px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.chat-header {
+    font-size: 1.7rem;
+    font-weight: 600;
+    color: var(--highlight);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.owner-controls {
+    font-size: 1rem;
+    color: var(--accent);
+    background: rgba(110,140,251,0.08);
+    border-radius: 8px;
+    padding: 4px 12px;
+}
+
+
+/* message list */
+
+.message-list-wrapper {
+    max-height: 320px;
+    overflow-y: auto;
+    background: rgba(60,70,123,0.08);
+    border-radius: 8px;
+    padding: 12px;
+}
+.message-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.message-list li {
+    margin-bottom: 18px;
+    padding: 12px 16px;
+    background: rgba(99,108,203,0.12);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(60,70,123,0.08);
+}
+.message-list b {
+    color: var(--highlight);
+}
+
+
+
+/* Chat members styles */
+.members-panel {
+    background: rgba(99,108,203,0.08);
+    border-radius: 12px;
+    padding: 18px;
+    margin-top: 12px;
+}
