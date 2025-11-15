@@ -12,12 +12,17 @@
     --bg: #23263a;
     --card-bg: #2c3050;
 
+    --border-radius-small: 8px;
     --border-radius: 16px;
     --shadow: 0 4px 24px rgba(60,70,123,0.12);
+    --shadow-padding: 24px;
     --transition: 0.2s cubic-bezier(.4,0,.2,1);
     --sidebar-width: 260px;
     --header-height: 64px;
 }
+
+
+/* layout */
 
 body {
     background: var(--bg);
@@ -27,63 +32,64 @@ body {
     min-height: 100vh;
 }
 
-.app-layout {
-    display: flex;
-}
-
-.sidebar {
-    width: var(--sidebar-width);
-    background: var(--primary);
-    color: var(--text);
-    box-shadow: var(--shadow);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 32px 0;
-}
-
-.header {
-    background: var(--secondary);
-    color: var(--text);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 0 32px;
-    border-radius: var(--border-radius);
-    font-size: 2rem;
-    font-weight: 700;
-    letter-spacing: 2px;
-    box-shadow: var(--shadow);
-}
-
-.main-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 0;
-}
-
-.section {
+.shadow-outline {
     background: var(--card-bg);
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
-    padding: 24px;
+    padding: var(--shadow-padding);
     transition: box-shadow var(--transition);
 }
 
-/* Chat List */
-.chat-list-header {
-    display:flex;
-    font-weight:700;
-    margin-top: 1.0rem;
-    margin-bottom: 1.0rem;
+
+/* Buttons */
+
+.btn-accept, .btn-reject {
+    border: none;
+    border-radius: var(--border-radius-small);
+    padding: 8px 18px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--transition), color var(--transition);
 }
-.chat-list {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+
+.btn-accept {
+    background: var(--highlight);
+    color: var(--primary);
 }
-.chat-list button {
+
+.btn-accept:hover {
+    background: var(--accent);
+    color: var(--text);
+}
+
+.btn-reject {
+    background: var(--secondary);
+    color: var(--text);
+}
+
+.btn-reject:hover {
+    background: var(--primary);
+    color: var(--highlight);
+}
+
+.btn-regular {
+    background: var(--primary);
+    color: var(--text);
+    border: none;
+    border-radius: var(--border-radius-small);
+    padding: 4px 12px;
+    font-size: 0.95rem;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: background var(--transition), transform var(--transition);
+}
+
+.btn-regular:hover {
+    background: var(--accent);
+}
+
+.btn-regular-expand {
     background: var(--primary);
     color: var(--text);
     border: none;
@@ -95,12 +101,30 @@ body {
     cursor: pointer;
     transition: background var(--transition), transform var(--transition);
 }
-.chat-list button:hover {
+
+.btn-regular-expand:hover {
     background: var(--accent);
     transform: translateY(-2px) scale(1.03);
 }
 
+.btn-remove {
+    background: var(--secondary);
+    color: var(--text);
+    border: none;
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background var(--transition);
+}
+
+.btn-remove:hover {
+    background: var(--bs-success);
+}
+
+
 /* Chat Form */
+
 .chat-container {
     background: var(--card-bg);
     border-radius: var(--border-radius);
@@ -216,21 +240,6 @@ body {
 }
 
 /* Button styles */
-.btn-remove {
-    background: var(--secondary);
-    color: var(--text);
-    border: none;
-    border-radius: 6px;
-    padding: 4px 12px;
-    font-size: 0.95rem;
-    cursor: pointer;
-    transition: background var(--transition);
-}
-.btn-remove:hover {
-    background: var(--bs-success);
-    color: var(--primary);
-}
-
 /* invitaiton styles (invitation modal) */
 .invite-section {
     margin-top: 18px;
@@ -281,31 +290,7 @@ body {
     justify-content: space-between;
     gap: 16px;
 }
-.btn-accept, .btn-reject {
-    border: none;
-    border-radius: 8px;
-    padding: 8px 18px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background var(--transition), color var(--transition);
-}
-.btn-accept {
-    background: var(--highlight);
-    color: var(--primary);
-}
-.btn-accept:hover {
-    background: var(--accent);
-    color: var(--text);
-}
-.btn-reject {
-    background: var(--secondary);
-    color: var(--text);
-}
-.btn-reject:hover {
-    background: var(--primary);
-    color: var(--highlight);
-}
+
 
 /* Modal (Create Chat) */
 .modal {

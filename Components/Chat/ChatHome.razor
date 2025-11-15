@@ -12,36 +12,26 @@
 @inject UserManager<ChatUser> UserManager
 @inject ChatService ChatService
 
-@* <h1>INFO</h1>
-<ul>
-    <li>Chat: @IsChatConnected</li>
-    <li>Invitation: @IsInvitationConnected</li>
-    <li>Message: @IsMessageConnected</li>
-</ul> *@
-
-
 <div class="app-layout">
-        @* <button class="btn-remove" style="margin-bottom:2rem;" @onclick="CloseChat">Close</button> *@
     <div class="main-content">
-        <div class="chat-list-header">
-            <ChatInvitations ChatHubConnection="@_chatHubConnection" Invitations="@_invitations" User="@_user" />
-        </div>
-        <div class="section">
+        <div class="shadow-outline">
+            <div class="main-content-header">
+                <ChatInvitations ChatHubConnection="@_chatHubConnection" Invitations="@_invitations" User="@_user" />
+            </div>
+            <hr />
             @if(!_chatOpen)
             {
                 <div class="message-list-header">
-                    <button class="btn-remove" @onclick="OnAddChat">Create Chat</button>
+                    <button class="btn-regular" @onclick="OnAddChat">Create Chat</button>
                 </div>
                 @if(_user is not null && _chatHubConnection is not null && _showCreateChat)
                 {
                     <ChatCreateForm ChatHubConnection=_chatHubConnection User=_user OnClose="CloseAddChat" />
                 }
-                <div class="chat-list">
-                    <ChatList   ChatOpened="@OpenChat"
-                                ChatHubConnection="@_chatHubConnection"
-                                Chats="@_chats"
-                                User="@_user" />
-                </div>
+                <ChatList   ChatOpened="@OpenChat"
+                            ChatHubConnection="@_chatHubConnection"
+                            Chats="@_chats"
+                            User="@_user" />
             }
             else
             {

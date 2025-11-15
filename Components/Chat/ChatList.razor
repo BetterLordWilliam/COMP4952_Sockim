@@ -8,7 +8,7 @@
     <div class="chat-list">
         @foreach(ChatDto chat in Chats)
         {
-            <button type="button" @onclick="() => OpenChat(chat)">@chat.ChatName</button>
+            <button class="btn-regular-expand" type="button" @onclick="() => OpenChat(chat)">@chat.ChatName</button>
         }
     </div>
 }

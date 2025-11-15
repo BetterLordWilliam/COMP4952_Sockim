@@ -1,0 +1,17 @@
+.app-layout {
+    display: flex;
+}
+
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding-top: var(--shadow-padding);
+}
+
+.main-content-header {
+    display:flex;
+    font-weight:700;
+    margin-top: 1.0rem;
+    margin-bottom: 1.0rem;
+}

@@ -9,11 +9,13 @@
 
 .top-row {
     position: fixed;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
     height: var(--top-row-height);
     width: 100%;
     display: flex;
     align-items: center;
-    background-color: var(--card-bg);
+    background-color: var(--primary);
     z-index: 900;
 }
 
