@@ -71,8 +71,7 @@ body {
     transition: box-shadow var(--transition);
 }
 
-/* --- Chat List --- */
-
+/* Chat List */
 .chat-list-header {
     display:flex;
     font-weight:700;
@@ -101,7 +100,7 @@ body {
     transform: translateY(-2px) scale(1.03);
 }
 
-/* --- Chat Form --- */
+/* Chat Form */
 .chat-container {
     background: var(--card-bg);
     border-radius: var(--border-radius);
@@ -308,7 +307,7 @@ body {
     color: var(--highlight);
 }
 
-/* --- Modal (Create Chat) --- */
+/* Modal (Create Chat) */
 .modal {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -333,7 +332,6 @@ body {
     margin-top: 8px;
 }
 
-/* --- Responsive --- */
 @media (max-width: 900px) {
     .app-layout {
         flex-direction: column;
@@ -344,9 +342,6 @@ body {
         flex-direction: row;
         justify-content: space-between;
         padding: 16px 24px;
-    }
-    .main-content {
-        padding: 0;
     }
     .section {
         margin: 12px 8px;
@@ -365,7 +360,7 @@ body {
     }
 }
 
-/* --- Scrollbar --- */
+/* Scrollbar */
 ::-webkit-scrollbar {
     width: 8px;
     background: var(--card-bg);

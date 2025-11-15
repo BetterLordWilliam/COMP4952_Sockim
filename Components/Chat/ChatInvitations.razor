@@ -37,17 +37,15 @@
 </div>
 
 @code {
-    private bool _showModal = false;
-    private void ToggleModal() => _showModal = !_showModal;
-}
-
-@code {
     [Parameter]
     public HubConnection? ChatHubConnection { get; set; }
     [Parameter]
     public ChatUser? User { get; set; }
     [Parameter]
     public List<ChatInvitationDto> Invitations { get; set; } = [];
+
+    private bool _showModal = false;
+    private void ToggleModal() => _showModal = !_showModal;
 
     /// <summary>
     /// Accepts an invitation and removes it from the pending list.

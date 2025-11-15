@@ -23,10 +23,6 @@
 <div class="app-layout">
         @* <button class="btn-remove" style="margin-bottom:2rem;" @onclick="CloseChat">Close</button> *@
     <div class="main-content">
-        <div class="header">
-            <div>Welcome</div>
-            <div>@(_user?.Email ?? "Guest")</div>
-        </div>
         <div class="chat-list-header">
             <ChatInvitations ChatHubConnection="@_chatHubConnection" Invitations="@_invitations" User="@_user" />
         </div>
