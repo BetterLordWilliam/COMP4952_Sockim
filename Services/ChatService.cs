@@ -154,24 +154,6 @@ public class ChatService
     }
 
     /// <summary>
-    /// Converts a Chat entity to ChatDto.
-    /// </summary>
-    public ChatDto ConvertToDto(Chat chat)
-    {
-        return new ChatDto
-        {
-            Id = chat.Id,
-            ChatName = chat.ChatName,
-            ChatOwnerId = chat.ChatOwnerId,
-            ChatOwnerEmail = chat.ChatOwner?.Email ?? string.Empty,
-            InvitedEmails = chat.ChatUsers
-                .Where(u => u.Id != chat.ChatOwnerId)
-                .Select(u => u.Email ?? string.Empty)
-                .ToList()
-        };
-    }
-
-    /// <summary>
     /// Gets all chat members (non-tracking) including owner.
     /// Useful for displaying members and managing who can remove users.
     /// </summary>
@@ -293,5 +275,23 @@ public class ChatService
             _logger.LogError($"Error removing user from chat: {ex.Message}");
             return false;
         }
+    }
+
+    /// <summary>
+    /// Converts a Chat entity to ChatDto.
+    /// </summary>
+    public ChatDto ConvertToDto(Chat chat)
+    {
+        return new ChatDto
+        {
+            Id = chat.Id,
+            ChatName = chat.ChatName,
+            ChatOwnerId = chat.ChatOwnerId,
+            ChatOwnerEmail = chat.ChatOwner?.Email ?? string.Empty,
+            InvitedEmails = chat.ChatUsers
+                .Where(u => u.Id != chat.ChatOwnerId)
+                .Select(u => u.Email ?? string.Empty)
+                .ToList()
+        };
     }
 }
