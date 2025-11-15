@@ -4,6 +4,7 @@
 .chat-content {
     flex: 1;
     height: 100%;
+    width: 100%;
     display: flex;
     min-height: 0;
     flex-direction: column;
@@ -12,6 +13,7 @@
 .chat-message-list {
     display: flex;
     height: 100%;
+    width: 100%;
     flex-grow: 1; 
     min-height: 0; 
     overflow-y: scroll;

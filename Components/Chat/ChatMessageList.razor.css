@@ -2,12 +2,14 @@
     background: rgba(60,70,123,0.08);
     border-radius: 8px;
     padding: 12px;
+    width: 100%;
 }
 
 .message-list {
     list-style: none;
     padding: 0;
     margin: 0;
+    width: 100%;
 }
 
 .message-list li {
