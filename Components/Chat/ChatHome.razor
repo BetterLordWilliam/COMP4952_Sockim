@@ -107,6 +107,9 @@
                 if (_chatOpen)
                     InvokeAsync(CloseChat);
                 _chats.Remove(chat);
+                _infoMessages.Add(new SockimMessage() {
+                    Message = "removed from chat"
+                });
                 InvokeAsync(StateHasChanged);
             });
 
