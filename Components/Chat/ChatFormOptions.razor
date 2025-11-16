@@ -3,6 +3,8 @@
 @using COMP4952_Sockim.Models
 @using Microsoft.AspNetCore.SignalR.Client
 
+@inject IJSRuntime JSRuntime
+
 <div class="modal">
     <div class="modal-content members-panel">
         @if(_editChatName) {
@@ -33,7 +35,7 @@
                 <p class="invite-status">@_inviteStatus</p>
             }
         </div>
-        @if (User is not null && ChatMembers is not null && ChatDto is not null && ChatMembers.Count > 0)
+        @if (ChatMembers.Count > 0)
         {
             <ul class="members-list">
                 @foreach (var member in ChatMembers)
@@ -48,18 +50,18 @@
                 }
             </ul>
         }
-        <button class="btn-danger" type="button" @onclick="() => RemoveMember(User?.Id ?? 0)" disabled="@(User == null || _isOwner)">Leave Chat</button>
+        <button class="btn-danger" type="button" @onclick="() => RemoveMember(User.Id)" disabled="@(User is null || _isOwner)">Leave Chat</button>
         <button class="btn-danger" type="button" @onclick="@CloseChatOptions">Close</button>
     </div>
 </div>
 
 @code {
     [Parameter]
-    public List<ChatUserDto>? ChatMembers { get; set; }
+    public required List<ChatUserDto> ChatMembers { get; set; }
     [Parameter]
-    public ChatDto? ChatDto { get; set; }
+    public required ChatDto ChatDto { get; set; }
     [Parameter]
-    public ChatUser? User { get; set; }
+    public required ChatUser User { get; set; }
     [Parameter]
     public HubConnection? ChatHubConnection { get; set; }
     [Parameter]
@@ -147,13 +149,18 @@
             return;
         }
 
-        try
+        bool confirm = await JSRuntime.InvokeAsync<bool>("confirm", "are you sure?");
+
+        if (confirm)
         {
-            await ChatHubConnection.SendAsync("RemoveUserFromChat", ChatDto.Id, User.Id, memberId);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error removing member: {ex.Message}");
+            try
+            {
+                await ChatHubConnection.SendAsync("RemoveUserFromChat", ChatDto.Id, User.Id, memberId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error removing member: {ex.Message}");
+            }
         }
     }
 }
