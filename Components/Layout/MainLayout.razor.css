@@ -48,9 +48,10 @@
 }
 
 .app-content {
+    padding-top: var(--top-row-height);
     padding-left: 1.5rem;
     padding-right: 1.5rem;
-    height: calc(100% - var(--top-row-height));
+    height: 100%;
 }
 
 #blazor-error-ui {

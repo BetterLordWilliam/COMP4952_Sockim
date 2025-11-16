@@ -13,6 +13,7 @@
 @inject ChatService ChatService
 
 <div class="app-layout">
+    <ChatInfoMessages ChatHubConnection="@_chatHubConnection" InfoMessages="@_infoMessages"></ChatInfoMessages>
     <ChatErrors ChatHubConnection="@_chatHubConnection" Errors="@_errors"></ChatErrors>
     <div class="main-content">
         <div class="main-content-header">
@@ -58,6 +59,7 @@
     private List<ChatInvitationDto> _invitations = [];
     private List<ChatMessageDto> _messages = [];
     private List<SockimError> _errors = [];
+    private List<SockimMessage> _infoMessages = [];
 
     private HubConnection? _chatHubConnection;
     private HubConnection? _invitationHubConnection;
@@ -89,6 +91,9 @@
             _chatHubConnection.On<ChatDto>("ChatCreated", (ChatDto newChat) =>
             {
                 _chats.Add(newChat);
+                _infoMessages.Add(new SockimMessage() {
+                    Message = "new chat created"
+                });
                 InvokeAsync(StateHasChanged);
             });
 
@@ -118,12 +123,20 @@
 
             _chatHubConnection.On<ChatDto>("InvitationAccepted", (ChatDto newChat) => {
                 _chats.Add(newChat);
+                _infoMessages.Add(new SockimMessage() {
+                    Message = "chat invitation accepted"
+                });
                 InvokeAsync(StateHasChanged);
             });
 
             _chatHubConnection.On<ChatInvitationDto[]>("RetrievedInvitations", (ChatInvitationDto[] invitations) =>
             {
                 _invitations = invitations.ToList();
+                InvokeAsync(StateHasChanged);
+            });
+
+            _chatHubConnection.On<SockimMessage>("InvitationSent", (SockimMessage message) => {
+                _infoMessages.Add(message);
                 InvokeAsync(StateHasChanged);
             });
 

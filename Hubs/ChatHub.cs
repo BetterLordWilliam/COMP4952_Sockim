@@ -84,39 +84,6 @@ public class ChatHub : Hub
 
             ChatDto createdChat = await _chatService.CreateChat(chatDto);
 
-            // bool success = await _invitationService.AddInvitations(invitations.ToArray());
-
-            // if (success)
-            // {
-            //     _logger.LogInformation($"Added {invitations.Count} invitations for chat {createdChat.Id}");
-            // }
-            // else
-            // {
-            //     _logger.LogWarning($"Failed to add invitations {chatDto.ChatName}, {chatDto.Id}");
-            // }
-
-            // if (invitations != null && invitations.Count > 0)
-            // {
-            //     foreach (var invitation in invitations)
-            //     {
-            //         invitation.ChatId = createdChat.Id;
-            //         invitation.SenderId = chatDto.ChatOwnerId;
-
-            //         bool added = await _invitationService.AddInvitation(invitation);
-            //         if (added)
-            //         {
-            //             // 3. Notify recipient about invitation
-            //             await Clients.Group($"user-{invitation.ReceiverId}")
-            //                 .SendAsync("IncomingInvitation", invitation);
-            //             _logger.LogInformation($"Invitation sent to user {invitation.ReceiverId}");
-            //         }
-            //         else
-            //         {
-            //         }
-            //     }
-
-            // }
-
             await Clients.Caller.SendAsync("ChatCreated", createdChat);
             _logger.LogInformation($"Chat '{createdChat.ChatName}' created successfully");
         }
@@ -218,7 +185,10 @@ public class ChatHub : Hub
             await Clients.Group($"user-{invitationDto.ReceiverId}")
                 .SendAsync("IncomingInvitation", invitationDto);
             await Clients.Caller
-                .SendAsync("InvitationSent", new { email = receiverEmail, chatId });
+                .SendAsync("InvitationSent", new SockimMessage()
+                {
+                    Message = $"invitation sent to \"{invitationDto.ReceiverEmail}\""
+                });
 
             _logger.LogInformation($"Invitation sent to {receiverEmail} for chat {chatId}");
         }

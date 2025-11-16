@@ -132,7 +132,7 @@ body {
 
 /* generic input styles */
 
-input {
+input, .form-control {
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--accent);

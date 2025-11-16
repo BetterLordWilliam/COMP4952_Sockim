@@ -26,7 +26,7 @@
                     type="text"
                     placeholder="Specify chat name"
                     @bind-value="_chatName" />
-            <label for="user-emails">User emails (space separated):</label>
+            @* <label for="user-emails">User emails (space separated):</label>
             @if(_isBadEmail)
             {
                 <div class="error-message">
@@ -50,7 +50,7 @@
                     placeholder="Add user email"
                     @bind-value=_newEmail
                     @bind-value:event="oninput"
-                    @onkeydown="AddEmail" />
+                    @onkeydown="AddEmail" /> *@
             <button class="btn-regular" type="submit">Create</button>
             <button class="btn-reject" type="button" @onclick="OnClose">Close</button>
         </form>
@@ -66,11 +66,6 @@
     public HubConnection? ChatHubConnection { get; set; }
 
     private string _chatName { get; set; } = string.Empty;
-    private List<string> _emails { get; set; } = new ();
-    private string _newEmail { get; set; } = string.Empty;
-    private string _badEmail { get; set; } = string.Empty;
-    private string _badEmailMessage { get; set; } = string.Empty;
-    private bool _isBadEmail = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -96,105 +91,27 @@
 
     private async Task OnChatCreateSubmit() 
     {
-        if (string.IsNullOrWhiteSpace(_chatName))
-        {
-            _badEmailMessage = "Chat name is required";
-            _isBadEmail = true;
-            return;
-        }
-
-        if (User == null)
-        {
-            _badEmailMessage = "User not authenticated";
-            _isBadEmail = true;
-            return;
-        }
-
         ChatDto chatDto = new()
         {
             ChatName = _chatName,
             ChatOwnerId = User.Id,
-            InvitedEmails = new List<string>(_emails)
         };
-
 
         if (ChatHubConnection is not null)
         {
             try
             {
                 await ChatHubConnection.SendAsync("AddChat", chatDto);
-                // await ChatHubConnection.SendAsync("InviteUsersToChat", chatDto, User, _emails);
             }
             catch (Exception ex)
             {
-                _badEmailMessage = "Error creating chat";
-                _isBadEmail = true;
                 Console.WriteLine($"Error sending to hub: {ex.Message}");
             }
-        }
-    }
-
-    private void AddEmail(KeyboardEventArgs e)
-    {
-        bool checkKey = e.Key == " ";
-
-        if(checkKey && !_newEmail.IsNullOrEmpty() && !_emails.Contains(_newEmail))
-        {
-            if (_newEmail == User?.Email)
-            {
-                _badEmail = _newEmail;
-                _isBadEmail = true;
-                _badEmailMessage = "cannot invite yourself to a group";
-
-                return;
-            }
-
-            bool userHasEmail = ChatUserService.GetUserByEmail(_newEmail) is not null;
-
-            if (!userHasEmail)
-            {
-                _badEmail = _newEmail;
-                _isBadEmail = true;
-                _badEmailMessage = "no such user";
-
-                return;
-            }
-
-            _emails.Add(_newEmail);
-            _newEmail = string.Empty;
-            _isBadEmail = false;
-
-            return;
-        }
-
-        bool delete = e.Key == "Backspace";
-
-        @* Console.WriteLine(_newEmail); *@
-
-        if (delete && !_isBadEmail && _newEmail.Length > 0 && _newEmail[^1] == ' ' && _emails.Count() > 0)
-        {
-            RemoveEmail(_emails[_emails.Count() - 1]);
-            _newEmail = string.Empty;
-            _isBadEmail = false;
-            return;
-        }
-    }
-
-    private void RemoveEmail(string email)
-    {
-        if (_emails.Contains(email))
-        {
-            _emails.Remove(email);
         }
     }
 
     private void ResetForm()
     {
         _chatName = string.Empty;
-        _emails.Clear();
-        _newEmail = string.Empty;
-        _isBadEmail = false;
-        _badEmail = string.Empty;
-        _badEmailMessage = string.Empty;
     }
 }
