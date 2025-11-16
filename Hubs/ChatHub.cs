@@ -242,7 +242,17 @@ public class ChatHub : Hub
                 Message = msg,
             });
         }
-        catch (Exception ex) when (ex is ChatUserException || ex is ChatException)
+        catch (ChatInvitationUserInvitedException ex)
+        {
+            string msg = "tried to invite a user to a chat they are already a part of";
+            _logger.LogError($"{msg}: {ex.Message}");
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg
+            });
+        }
+        catch (Exception ex) when (ex is ChatUserException || ex is ChatException || ex is ChatInvitationException)
         {
             string msg = "internal error, could not invite user";
             _logger.LogError($"{msg}, {ex.Message}");

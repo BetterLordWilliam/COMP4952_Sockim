@@ -7,4 +7,9 @@ public class ChatInvitationException : Exception
     public ChatInvitationException(string message = "") : base(message) {}
 }
 
+public class ChatInvitationUserInvitedException : Exception
+{
+    public ChatInvitationUserInvitedException(string message = "") : base(message) {}
+}
+
 
