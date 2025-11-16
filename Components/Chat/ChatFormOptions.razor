@@ -48,7 +48,7 @@
                                 <Confirm    OnModalDone="@RemoveConfirmCallback"
                                             Title="Remove Member"
                                             @ref="_confirmRemove"/>
-                                <button type="button" class="btn-danger" @onclick="() => RemoveMember(member.Id, _confirmRemove)" title="Remove member">Remove</button>
+                                <button type="button" class="btn-danger" @onclick="() => RemoveMember(member.Id, _confirmRemove!)" title="Remove member">Remove</button>
                             }
                     </li>
                 }
@@ -57,7 +57,7 @@
         <Confirm    OnModalDone="@RemoveConfirmCallback"
                     Title="Leave chat"
                     @ref="_confirmLeave" />
-        <button class="btn-danger" type="button" @onclick="() => RemoveMember(User.Id, _confirmLeave)">Leave Chat</button>
+        <button class="btn-danger" type="button" @onclick="() => RemoveMember(User.Id, _confirmLeave!)">Leave Chat</button>
         <button class="btn-danger" type="button" @onclick="@CloseChatOptions">Close</button>
     </div>
 </div>
