@@ -1,4 +1,5 @@
 ﻿@using COMP4952_Sockim.Components.Account.Pages.Manage
+@using COMP4952_Sockim.Components.Elements
 @using COMP4952_Sockim.Data
 @using COMP4952_Sockim.Models
 @using Microsoft.AspNetCore.SignalR.Client
@@ -41,16 +42,22 @@
                 @foreach (var member in ChatMembers)
                 {
                     <li class="member-item">
-                        <span class="member-email">@member.Email</span>
-                        @if (member.Id != User.Id)
-                        {
-                            <button type="button" class="btn-danger" @onclick="() => RemoveMember(member.Id)" title="Remove member">Remove</button>
-                        }
+                            <span class="member-email">@member.Email</span>
+                            @if (member.Id != User.Id)
+                            {
+                                <Confirm    OnModalDone="@RemoveConfirmCallback"
+                                            Title="Remove Member"
+                                            @ref="_confirmRemove"/>
+                                <button type="button" class="btn-danger" @onclick="() => RemoveMember(member.Id, _confirmRemove)" title="Remove member">Remove</button>
+                            }
                     </li>
                 }
             </ul>
         }
-        <button class="btn-danger" type="button" @onclick="() => RemoveMember(User.Id)" disabled="@(User is null || _isOwner)">Leave Chat</button>
+        <Confirm    OnModalDone="@RemoveConfirmCallback"
+                    Title="Leave chat"
+                    @ref="_confirmLeave" />
+        <button class="btn-danger" type="button" @onclick="() => RemoveMember(User.Id, _confirmLeave)">Leave Chat</button>
         <button class="btn-danger" type="button" @onclick="@CloseChatOptions">Close</button>
     </div>
 </div>
@@ -67,11 +74,14 @@
     [Parameter]
     public EventCallback CloseChatOptions { get; set; }
 
+    private Confirm? _confirmRemove;
+    private Confirm? _confirmLeave;
     private bool _isOwner => User?.Id == ChatDto?.ChatOwnerId;
     private bool _editChatName = false;
     private string _inviteEmail = string.Empty;
     private string _inviteStatus = string.Empty;
     private string _updatedChatName = string.Empty;
+    private int _memberToRemove;
 
     private void RenameChat()
     {
@@ -130,12 +140,28 @@
         }
     }
 
+    private async Task RemoveConfirmCallback(bool result)
+    {
+        if (result && ChatHubConnection is not null)
+        {
+            try
+            {
+                await ChatHubConnection.SendAsync("RemoveUserFromChat", ChatDto.Id, User.Id, _memberToRemove);
+                _memberToRemove = -1;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error removing member: {ex.Message}");
+            }
+        }
+    }
+
     /// <summary>
     /// Remove a member from the chat.
     /// Only the chat owner can remove members.
     /// Calls ChatHub to remove the user.
     /// </summary>
-    private async Task RemoveMember(int memberId)
+    private async Task RemoveMember(int memberId, Confirm confirm)
     {
         if (ChatHubConnection is null)
         {
@@ -149,18 +175,8 @@
             return;
         }
 
-        bool confirm = await JSRuntime.InvokeAsync<bool>("confirm", "are you sure?");
-
-        if (confirm)
-        {
-            try
-            {
-                await ChatHubConnection.SendAsync("RemoveUserFromChat", ChatDto.Id, User.Id, memberId);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error removing member: {ex.Message}");
-            }
-        }
+        // bool confirm = await JSRuntime.InvokeAsync<bool>("confirm", "are you sure?");
+        _memberToRemove = memberId;
+        confirm?.ShowModal();
     }
 }

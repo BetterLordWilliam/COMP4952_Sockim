@@ -113,6 +113,13 @@
                 InvokeAsync(StateHasChanged);
             });
 
+            _chatHubConnection.On<ChatDto, ChatUserDto>("MemberRemoved", (ChatDto chat, ChatUserDto user) => {
+                _infoMessages.Add(new SockimMessage() {
+                    Message = $"{user.Email} removed from chat {chat.ChatName}"
+                });
+                InvokeAsync(StateHasChanged);
+            });
+
             _chatHubConnection.On<ChatDto>("ChatUpdated", (ChatDto chat) => {
                 int index = _chats.IndexOf(chat);
                 _chats[index] = chat;
