@@ -6,6 +6,9 @@
     padding-left: 10px;
     padding-right: 10px;
     width: 100%;
-    overflow: scroll;
+
+    overflow-y: scroll;
+    overflow-x: visible;
+
     height: auto;
 }

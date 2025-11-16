@@ -76,6 +76,23 @@ public class InvitationsService
     {
         try
         {
+            Chat? chat = await _chatDbContext.Chats
+                .Include(c => c.ChatUsers)
+                .Where(c => c.Id == invitationDto.ChatId)
+                .FirstOrDefaultAsync();
+
+            if (chat is null)
+            {
+                _logger.LogError($"chat with the id {invitationDto.ChatId} does not exist");
+                throw new ChatInvitationException();
+            }
+
+            if (chat.ChatUsers.Where(c => c.Id == invitationDto.ReceiverId).FirstOrDefault() is not null)
+            {
+                _logger.LogError($"user with id {invitationDto.ReceiverId} is already a member of chat {chat.Id}");
+                throw new ChatInvitationUserInvitedException();
+            }
+
             ChatInvitation invitation = new()
             {
                 SenderId = invitationDto.SenderId,

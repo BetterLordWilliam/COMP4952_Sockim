@@ -1,0 +1,41 @@
+.error-log {
+    position: fixed;
+    display: flex;
+    gap: var(--small-gap);
+    flex-direction: column-reverse;
+    z-index: 1100;
+    right: 0;
+    bottom: 0;
+    padding: 24px;
+    max-width: 360px;
+}
+
+.error-log-item {
+    padding: 8px;
+    border-radius: var(--border-radius-small);
+    border-color: crimson;
+    border-style: solid;
+    border-width: 2px;
+    background-color: var(--bs-success);
+    display: flex;
+    flex-direction: row;
+    gap: var(--small-gap);
+}
+
+.error-log-item-message {
+
+}
+
+.btn-error-log {
+    color: var(--text);
+    border-color: crimson;
+    border-style: solid;
+    border-radius: var(--border-radius-small);
+    background: var(--bs-success);
+    height: min-content;
+    padding: 6px;
+}
+
+.btn-error-log:hover {
+    background: crimson;
+}
