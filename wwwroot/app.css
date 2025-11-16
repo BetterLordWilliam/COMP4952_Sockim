@@ -132,11 +132,7 @@ body {
 
 /* generic input styles */
 
-.input-controls {
-    display: flex;
-    flex-direction: column;
-}
-.input-controls input {
+input {
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--accent);
@@ -147,34 +143,21 @@ body {
     transition: border var(--transition);
 }
 
-.input-controls input:focus {
-    border-color: var(--highlight);
+.input-controls {
+    display: flex;
+    flex-direction: column;
 }
 
-.input-controls .btn-regular, .btn-accept {
+.input-controls input {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--accent);
     border-radius: 8px;
-    padding: 8px 20px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background var(--transition), color var(--transition);
+    padding: 8px 12px;
+    font-size: 1rem;
+    outline: none;
+    transition: border var(--transition);
 }
-
-.input-controls .btn-regular:hover, .btn-accept:hover {
-    background: var(--accent);
-}
-
-.input-controls .btn-reject, .btn-danger {
-    border-radius: 8px;
-    padding: 8px 20px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background var(--transition), color var(--transition);
-}
-
-.input-controls .btn-reject:hover, .btn-danger:hover {
-    background: var(--bs-success);
-}
-
 
 /* Scrollbar */
 

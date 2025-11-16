@@ -30,10 +30,6 @@
     gap: 24px;
 }
 
-.chat-input-controls {
-    flex-shrink: 0;
-}
-
 .chat-header {
     font-size: 1.7rem;
     font-weight: 600;
@@ -41,6 +37,18 @@
     margin-bottom: 8px;
     gap: var(--small-gap);
     display: flex;
+    flex-direction: column;
+}
+
+.chat-header-controls {
+    display: flex;
+    flex-direction: row;
+    gap: var(--small-gap);
+}
+
+.chat-header-info {
+    display: flex;
+    flex-direction: row;
 }
 
 .owner-controls {
@@ -49,6 +57,22 @@
     background: rgba(110,140,251,0.08);
     border-radius: 8px;
     padding: 4px 12px;
+    margin-left: auto;
+}
+
+.chat-input {
+    flex-shrink: 0;
+    padding: 12px;
+}
+
+.chat-input-controls {
+    display: flex;
+    flex-direction: row;
+    gap: var(--small-gap);
+}
+
+.message-input {
+    flex-grow: 1;
 }
 
 /* .members-panel {

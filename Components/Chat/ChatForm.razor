@@ -27,8 +27,18 @@
 }
 
 <div class="chat-header">
-    <button type="button" class="btn-remove" @onclick="CloseChat">Close</button>
-    <button type="button" class="btn-remove" @onclick="@OpenChatOptions">Chat Options</button>
+    <div class="chat-header-info">
+        @ChatDto.ChatName
+        @if (User.Id == ChatDto.ChatOwnerId) {
+            <div class="owner-controls">
+                You are the owner
+            </div>
+        }
+    </div>
+    <div class="chat-header-controls">
+        <button type="button" class="btn-danger" @onclick="CloseChat">Close</button>
+        <button type="button" class="btn-regular" @onclick="@OpenChatOptions">Chat Options</button>
+    </div>
 </div>
 <div class="chat-content">
     <div class="chat-message-list">
@@ -36,10 +46,12 @@
                             User="@User"
                             MessageHubConnection="@MessageHubConnection"></ChatMessageList>
     </div>
-    <div class="input-controls chat-input-controls">
+    <div class="chat-input">
         <label for="message-input">Message:</label>
-        <input id="message-input" @bind="_message" class="message-input" />
-        <button class="btn-regular" @onclick="Send">Send</button>
+        <div class="chat-input-controls">
+            <input id="message-input" @bind="_message" class="message-input" />
+            <button class="btn-regular" @onclick="Send">Send</button>
+        </div>
     </div>
 </div>
 

@@ -6,7 +6,7 @@
 <div class="modal">
     <div class="modal-content members-panel">
         @if(_editChatName) {
-            <div class="input-controls">
+            <div class="">
                 <div class="rename-chat-controls">
                     <h3><input type="text" @bind-value="@_updatedChatName" /></h3>
                     <div class="rename-chat-options">
@@ -23,10 +23,11 @@
         }
         <hr />
         <h3>Chat Members</h3>
-        <div class="input-controls">
-            <input type="email" @bind="_inviteEmail" placeholder="Enter email address of new member" />
-            <button type="button" class="btn-regular" @onclick="InviteMember">Invite</button>
-            <button type="button" class="btn-danger" @onclick="() => RemoveMember(User?.Id ?? 0)" disabled="@(User == null || _isOwner)">Leave</button>
+        <div class="">
+            <div class="invite-controls">
+                <input class="invite-email-input" type="email" @bind="_inviteEmail" placeholder="Enter email address of new member" />
+                <button type="button" class="btn-regular invite-button" @onclick="InviteMember">Invite</button>
+            </div>
             @if (!string.IsNullOrEmpty(_inviteStatus))
             {
                 <p class="invite-status">@_inviteStatus</p>
@@ -39,7 +40,7 @@
                 {
                     <li class="member-item">
                         <span class="member-email">@member.Email</span>
-                        @if (member.Id != ChatDto.ChatOwnerId && member.Id != User.Id)
+                        @if (member.Id != User.Id)
                         {
                             <button type="button" class="btn-danger" @onclick="() => RemoveMember(member.Id)" title="Remove member">Remove</button>
                         }
@@ -47,7 +48,7 @@
                 }
             </ul>
         }
-
+        <button class="btn-danger" type="button" @onclick="() => RemoveMember(User?.Id ?? 0)" disabled="@(User == null || _isOwner)">Leave Chat</button>
         <button class="btn-danger" type="button" @onclick="@CloseChatOptions">Close</button>
     </div>
 </div>

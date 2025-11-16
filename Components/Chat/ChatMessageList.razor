@@ -13,17 +13,17 @@
                 <li>
                     <span class="message-meta"><b>@message.SenderEmail</b>, <b>@message.MessageDateTime</b></span>
                     @if (_editMessage && _editMessageId == message.Id) {
-                        <div class="input-controls">
+                        <div class="">
                             <input type="text" @bind-value="@_updatedMessage" />
                             <div class="message-edit-options">
-                                <button class="btn-remove" type="button" @onclick="() => SaveMessageEdit(message, _updatedMessage)">Save</button>
-                                <button class="btn-remove" type="cancel" @onclick="() => CancelMessageEdit(message)">Cancel</button>
+                                <button class="btn-regular" type="button" @onclick="() => SaveMessageEdit(message, _updatedMessage)">Save</button>
+                                <button class="btn-danger" type="cancel" @onclick="() => CancelMessageEdit(message)">Cancel</button>
                             </div>
                         </div>
                     } else {
                         <p class="message-text">@message.MessageContent</p>
                         @if(message.ChatUserId == User.Id) {
-                            <button class="btn-remove" type="button" disabled="@_editMessage"
+                            <button class="btn-regular" type="button" disabled="@_editMessage"
                                     @onclick="() => EditMesssage(message)" >
                                 Edit
                             </button>

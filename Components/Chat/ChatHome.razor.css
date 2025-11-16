@@ -32,3 +32,13 @@
     margin-bottom: 1.0rem;
     padding-bottom: 5px;
 }
+
+.error-log {
+    position: fixed;
+    display: flex;
+    flex-direction: column-reverse;
+    z-index: 900;
+    right: 0;
+    bottom: 0;
+    padding: 24px;
+}
