@@ -10,7 +10,7 @@
         {
             @foreach (ChatMessageDto message in ChatMessages)
             {
-                <li>
+                <li style="background-color: @GetMessageColor(message.ChatUserId)">
                     <span class="message-meta"><b>@message.SenderEmail</b>, <b>@message.MessageDateTime</b></span>
                     @if (_editMessage && _editMessageId == message.Id) {
                         <div class="">
@@ -42,11 +42,18 @@
     public ChatUser? User { get; set; }
     [Parameter]
     public HubConnection? MessageHubConnection { get; set; }
+    [Parameter]
+    public Dictionary<int, string>? MemberColors { get; set; }
 
     private int _editMessageId = -1;
     private bool _editMessage = false;
     private string _updatedMessage = string.Empty;
     private ElementReference _messageListWrapper;
+
+    private string GetMessageColor(int userId)
+    {
+        return MemberColors?.TryGetValue(userId, out string? color) == true ? color : "#636CCB";
+    }
 
     private void EditMesssage(ChatMessageDto message)
     {

@@ -8,7 +8,8 @@
 
 <div class="modal">
     <div class="modal-content members-panel">
-        @if(_editChatName) {
+        @if (_editChatName)
+        {
             <div class="">
                 <div class="rename-chat-controls">
                     <h3><input type="text" @bind-value="@_updatedChatName" /></h3>
@@ -18,7 +19,9 @@
                     </div>
                 </div>
             </div>
-        } else {
+        }
+        else
+        {
             <div class="rename-chat-controls">
                 <h3 class="chat-name">@ChatDto?.ChatName</h3>
                 <button class="btn-regular rename-button" type="button" @onclick="@RenameChat">Rename</button>
@@ -28,7 +31,8 @@
         <h3>Chat Members</h3>
         <div class="">
             <div class="invite-controls">
-                <input class="invite-email-input" type="email" @bind="_inviteEmail" placeholder="Enter email address of new member" />
+                <input class="invite-email-input" type="email" @bind="_inviteEmail"
+                    placeholder="Enter email address of new member" />
                 <button type="button" class="btn-regular invite-button" @onclick="InviteMember">Invite</button>
             </div>
             @if (!string.IsNullOrEmpty(_inviteStatus))
@@ -54,6 +58,27 @@
                 }
             </ul>
         }
+        <h3>Message Colors</h3>
+        <div class="color-settings">
+            <p>Customize message bubble colors for each member:</p>
+
+            @if (ChatMembers is not null)
+            {
+                @foreach (var member in ChatMembers)
+                {
+                    <div class="member-color-setting">
+                        <span class="member-name">@member.Email</span>
+                        <input type="color" value="@GetMemberColor(member.Id)"
+                            @onchange="e => UpdateMemberColor(member.Id, e.Value?.ToString())"
+                            title="Choose color for @member.Email's messages" />
+                        @if (member.Id == User?.Id)
+                        {
+                            <span class="color-label">(Your messages)</span>
+                        }
+                    </div>
+                }
+            }
+        </div>
         <Confirm    OnModalDone="@RemoveConfirmCallback"
                     Title="Leave chat"
                     @ref="_confirmLeave" />
@@ -73,6 +98,8 @@
     public HubConnection? ChatHubConnection { get; set; }
     [Parameter]
     public EventCallback CloseChatOptions { get; set; }
+    [Parameter]
+    public Dictionary<int, string>? MemberColors { get; set; }
 
     private Confirm? _confirmRemove;
     private Confirm? _confirmLeave;
@@ -82,6 +109,33 @@
     private string _inviteStatus = string.Empty;
     private string _updatedChatName = string.Empty;
     private int _memberToRemove;
+
+    protected override void OnInitialized()
+    {
+        if (MemberColors != null && ChatMembers != null)
+        {
+            foreach (var member in ChatMembers)
+            {
+                MemberColors.TryAdd(member.Id, "#636CCB");
+            }
+        }
+    }
+
+    private string GetMemberColor(int memberId)
+    {
+        return MemberColors?.TryGetValue(memberId, out string? color) == true ? color : "#636CCB";
+    }
+
+    private async Task UpdateMemberColor(int memberId, string? newColor)
+    {
+        if (string.IsNullOrEmpty(newColor) || MemberColors == null)
+        {
+            return;
+        }
+
+        MemberColors[memberId] = newColor;
+        await InvokeAsync(StateHasChanged);
+    }
 
     private void RenameChat()
     {

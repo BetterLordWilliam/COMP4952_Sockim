@@ -36,7 +36,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: rgba(60,70,123,0.10);
+    /*background: rgba(60,70,123,0.10);*/
+    background: var(--bg);
     border-radius: 8px;
     padding: 8px 16px;
 }
@@ -53,4 +54,39 @@
 
 .invite-button {
     flex-shrink: 0;
+}
+
+.color-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.member-color-setting {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    background: var(--bg);
+    border-radius: 8px;
+}
+
+.member-name {
+    flex: 1;
+    font-size: 0.95rem;
+}
+
+.member-color-setting input[type="color"] {
+    width: 50px;
+    height: 35px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.color-label {
+    font-size: 0.85rem;
+    color: var(--accent);
+    font-style: italic;
 }

@@ -23,6 +23,7 @@
                         ChatDto="@ChatDto"
                         User="@User"
                         ChatHubConnection="@ChatHubConnection"
+                        MemberColors="@_memberColors"
                         CloseChatOptions="@CloseChatOptions"></ChatFormOptions>
 }
 
@@ -44,6 +45,7 @@
     <div class="chat-message-list" @ref="_chatMessageList">
         <ChatMessageList    ChatMessages="@_messages"
                             User="@User"
+                            MemberColors="@_memberColors"
                             MessageHubConnection="@MessageHubConnection"></ChatMessageList>
     </div>
     <div class="chat-input">
@@ -76,6 +78,7 @@
     private List<ChatUserDto> _chatMembers = [];
     private string _message = string.Empty;
     private bool _showChatOptions = false;
+    private Dictionary<int, string> _memberColors = new();
 
     protected override async Task OnInitializedAsync()
     {
