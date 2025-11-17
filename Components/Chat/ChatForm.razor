@@ -41,7 +41,7 @@
     </div>
 </div>
 <div class="chat-content">
-    <div class="chat-message-list">
+    <div class="chat-message-list" @ref="_chatMessageList">
         <ChatMessageList    ChatMessages="@_messages"
                             User="@User"
                             MessageHubConnection="@MessageHubConnection"></ChatMessageList>
@@ -71,7 +71,7 @@
     [Parameter]
     public EventCallback CloseChat { get; set; }
 
-    private ElementReference _messageListWrapper;
+    private ElementReference? _chatMessageList;
     private List<ChatMessageDto> _messages = [];
     private List<ChatUserDto> _chatMembers = [];
     private string _message = string.Empty;
@@ -129,12 +129,14 @@
             {
                 _messages.Add(message);
                 InvokeAsync(StateHasChanged);
+                InvokeAsync(ScrollToBottom);
             });
 
             MessageHubConnection.On<ChatMessageDto[]>("RetrievedMessages", (ChatMessageDto[] messages) =>
             {
                 _messages = messages.ToList();
                 InvokeAsync(StateHasChanged);
+                InvokeAsync(ScrollToBottom);
             });
 
             await MessageHubConnection.SendAsync("JoinChat", ChatDto.Id, User.Id);
@@ -154,9 +156,9 @@
 
     private async Task ScrollToBottom()
     {
-        if (_messageListWrapper.Id != null)
+        if (_chatMessageList is not null)
         {
-            await JSRuntime.InvokeVoidAsync("scrollToElementBottom", _messageListWrapper);
+            await JSRuntime.InvokeVoidAsync("scrollToElementBottom", _chatMessageList);
         }
     }
 
