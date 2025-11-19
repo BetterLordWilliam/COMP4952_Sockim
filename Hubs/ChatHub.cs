@@ -244,16 +244,14 @@ public class ChatHub : Hub
         }
     }
 
-    public async Task RemoveUserFromChat(int chatId, int requesterId, int userIdToRemove)
+    public async Task RemoveUserFromChat(int chatId, int userIdToRemove)
     {
         try
         {
-            _logger.LogInformation($"User {requesterId} requesting to remove user {userIdToRemove} from chat {chatId}");
+            _logger.LogInformation($"Requesting to remove user {userIdToRemove} from chat {chatId}");
 
             ChatDto chatDto = await _chatService.GetChatById(chatId);
-
-            await _chatService.RemoveUserFromChat(chatId, userIdToRemove);
-            
+            ChatDto? updatedChat = await _chatService.RemoveUserFromChat(chatId, userIdToRemove);
             ChatUserDto chatUserDto = _chatUserService.GetUser(userIdToRemove);
 
             await Clients.Group($"user-{userIdToRemove}")
@@ -263,6 +261,12 @@ public class ChatHub : Hub
                 .SendAsync("MemberRemoved", chatDto, chatUserDto);
 
             _logger.LogInformation($"User {userIdToRemove} removed from chat {chatId}");
+
+            if (updatedChat is not null)
+            {
+                await Clients.Group($"chat-{chatId}")
+                    .SendAsync("ChatUpdated", updatedChat);
+            }
         }
         catch (ChatNotFoundException ex)
         {

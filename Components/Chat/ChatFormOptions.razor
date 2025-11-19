@@ -108,7 +108,7 @@
     private string _inviteEmail = string.Empty;
     private string _inviteStatus = string.Empty;
     private string _updatedChatName = string.Empty;
-    private int _memberToRemove;
+    private int? _memberToRemove;
 
     protected override void OnInitialized()
     {
@@ -196,12 +196,12 @@
 
     private async Task RemoveConfirmCallback(bool result)
     {
-        if (result && ChatHubConnection is not null)
+        if (result && _memberToRemove is not null && ChatHubConnection is not null)
         {
             try
             {
-                await ChatHubConnection.SendAsync("RemoveUserFromChat", ChatDto.Id, User.Id, _memberToRemove);
-                _memberToRemove = -1;
+                await ChatHubConnection.SendAsync("RemoveUserFromChat", ChatDto.Id, _memberToRemove);
+                _memberToRemove = null;
             }
             catch (Exception ex)
             {

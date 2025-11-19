@@ -3,19 +3,22 @@ using System.Threading.Tasks;
 using COMP4952_Sockim.Data;
 using COMP4952_Sockim.Models;
 using COMP4952_Sockim.Services.Exceptions;
+using Microsoft.AspNetCore.Razor.TagHelpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace COMP4952_Sockim.Services;
 
 public class ChatService
 {
-    private ILogger<ChatService> _logger;
-    private ChatDbContext _chatDbContext;
+    private readonly ILogger<ChatService> _logger;
+    private readonly ChatDbContext _chatDbContext;
+    private readonly ChatUserService _chatUserService;
 
-    public ChatService(ILogger<ChatService> logger, ChatDbContext chatDbContext)
+    public ChatService(ILogger<ChatService> logger, ChatDbContext chatDbContext, ChatUserService chatUserService)
     {
         _logger = logger;
         _chatDbContext = chatDbContext;
+        _chatUserService = chatUserService;
     }
 
     /// <summary>
@@ -73,6 +76,11 @@ public class ChatService
             _logger.LogError($"database operation failed while creating chat {ex.Message}");
             throw new ChatException();
         }
+    }
+
+    public async Task DeleteChat(ChatDto chatDto)
+    {
+
     }
 
     /// <summary>
@@ -314,7 +322,7 @@ public class ChatService
     /// <exception cref="ChatUserNotFoundException"></exception>
     /// <exception cref="ChatOwnerCannotBeRemovedException"></exception>
     /// <exception cref="ChatException"></exception>
-    public async Task RemoveUserFromChat(int chatId, int userId)
+    public async Task<ChatDto?> RemoveUserFromChat(int chatId, int userId)
     {
         try
         {
@@ -335,16 +343,39 @@ public class ChatService
                 throw new ChatUserNotFoundException($"user with id {userId} not found for chat {chatId}");
             }
 
-            if (chat.ChatOwnerId == userId)
-            {
-                _logger.LogWarning($"Cannot remove chat owner {userId} from chat {chatId}");
-                throw new ChatOwnerCannotBeRemovedException();
-            }
 
             chat.ChatUsers.Remove(user);
             await _chatDbContext.SaveChangesAsync();
 
             _logger.LogInformation($"User {userId} removed from chat {chatId}");
+
+            if (chat.ChatOwnerId == userId)
+            {
+                _logger.LogWarning("... Selecting a new owner ...");
+                ChatUser? newOwner = chat.ChatUsers.FirstOrDefault();
+
+                if (newOwner is null || chat.ChatUsers.Count() == 0)
+                {
+                    _logger.LogInformation("... No user to select, removing the chat ...");
+                    _chatDbContext.Chats.Remove(chat);
+                    await _chatDbContext.SaveChangesAsync();
+
+                    return null;
+                }
+                else
+                {
+                    chat.ChatOwnerId = newOwner.Id;
+                    chat.ChatOwner = newOwner;
+                    newOwner.OwnedChats.Add(chat);    
+                    await _chatDbContext.SaveChangesAsync();
+
+                    return ConvertToDto(chat);
+                }
+            }
+            else
+            {
+                return null;
+            }
         }
         catch (OperationCanceledException ex)
         {
