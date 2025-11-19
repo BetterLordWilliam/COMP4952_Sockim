@@ -157,6 +157,35 @@ public class MessageHub : Hub
         }
     }
 
+    public async Task DeleteMessage(ChatMessageDto message)
+    {
+        try
+        {
+            _logger.LogInformation($"deleting message with id {message.Id}");
+
+            await _messagesService.DeleteChatMessage(message.Id);
+
+            _logger.LogInformation($"deleted message with id {message.Id}");
+
+            await Clients.Caller.SendAsync("MessageDeletedSuccess", new SockimMessage()
+            {
+                Message = "message deleted successfully"
+            });
+            await Clients.Group($"chat-{message.ChatId}").SendAsync("MessageDeleted", message);
+        }
+        catch (ChatMessageException ex)
+        {
+            string msg = "chat message could not be deleted";
+            _logger.LogError($"{msg}, {ex.Message}");
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg
+            });
+        }
+    }
+
+    // public async Task 
+
     /// <summary>
     /// Broadcasting when user is typing.
     /// </summary>

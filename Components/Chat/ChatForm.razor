@@ -121,10 +121,14 @@
             MessageHubConnection.On<ChatUserDto>("MemberRemoved", (ChatUserDto user) => {
             }); *@
 
-            MessageHubConnection.On<ChatMessageDto>("MessageUpdated", (ChatMessageDto message) =>
-            {
+            MessageHubConnection.On<ChatMessageDto>("MessageUpdated", (ChatMessageDto message) => {
                 int index = _messages.IndexOf(message);
                 _messages[index] = message;
+                InvokeAsync(StateHasChanged);
+            });
+
+            MessageHubConnection.On<ChatMessageDto>("MessageDeleted", (ChatMessageDto message) => {
+                _messages.Remove(message);
                 InvokeAsync(StateHasChanged);
             });
 
@@ -135,8 +139,7 @@
                 InvokeAsync(ScrollToBottom);
             });
 
-            MessageHubConnection.On<ChatMessageDto[]>("RetrievedMessages", (ChatMessageDto[] messages) =>
-            {
+            MessageHubConnection.On<ChatMessageDto[]>("RetrievedMessages", (ChatMessageDto[] messages) => {
                 _messages = messages.ToList();
                 InvokeAsync(StateHasChanged);
                 InvokeAsync(ScrollToBottom);

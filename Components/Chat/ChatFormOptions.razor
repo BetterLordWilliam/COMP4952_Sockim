@@ -116,14 +116,14 @@
         {
             foreach (var member in ChatMembers)
             {
-                MemberColors.TryAdd(member.Id, "#636CCB");
+                MemberColors.TryAdd(member.Id, "#6e8cfb14");
             }
         }
     }
 
     private string GetMemberColor(int memberId)
     {
-        return MemberColors?.TryGetValue(memberId, out string? color) == true ? color : "#636CCB";
+        return MemberColors?.TryGetValue(memberId, out string? color) == true ? color : "#6e8cfb14";
     }
 
     private async Task UpdateMemberColor(int memberId, string? newColor)

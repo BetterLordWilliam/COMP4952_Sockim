@@ -171,6 +171,11 @@
                 Console.WriteLine($"CLIENT ERROR RECEIVED: {error.Message}");
             });
 
+            _messageHubConnection.On<SockimMessage>("MessageDeletedSuccess", (SockimMessage message) => {
+                _infoMessages.Add(message);   
+                InvokeAsync(StateHasChanged);
+            });
+
             if (_chatHubConnection.State == HubConnectionState.Disconnected)
                 await _chatHubConnection.StartAsync();
             if (_messageHubConnection.State == HubConnectionState.Disconnected)

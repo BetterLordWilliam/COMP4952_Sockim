@@ -1,4 +1,5 @@
 using System;
+using System.Linq.Expressions;
 using COMP4952_Sockim.Data;
 using COMP4952_Sockim.Models;
 using COMP4952_Sockim.Services.Exceptions;
@@ -114,6 +115,33 @@ public class MessagesService
         }
     }
 
+    /// <summary>
+    /// Deletes a message from the database.
+    /// </summary>
+    /// <param name="chatMessageId"></param>
+    /// <returns></returns>
+    /// <exception cref="ChatMessageException"></exception>
+    public async Task DeleteChatMessage(int chatMessageId)
+    {
+        try
+        {
+            int message = await _chatDbContext.Messages.Where(c => c.Id == chatMessageId).ExecuteDeleteAsync();
+            if (message == 0)
+            {
+                _logger.LogInformation($"chat message with id: {chatMessageId} could not be deleted");
+            }
+            else if (message > 1)
+            {
+                _logger.LogInformation($"multiple records were deleted for message with id: {chatMessageId}");
+            }
+        }
+        catch (ArgumentNullException ex)
+        {
+            _logger.LogError($"argument null, could not delete message: {ex.Message}");
+            throw new ChatMessageException();
+        }
+    }
+            
     /// <summary>
     /// Retrieves messages for a chat.
     /// </summary>

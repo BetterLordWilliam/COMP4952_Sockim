@@ -1,4 +1,5 @@
-﻿@using COMP4952_Sockim.Data
+﻿@using COMP4952_Sockim.Components.Elements
+@using COMP4952_Sockim.Data
 @using COMP4952_Sockim.Models
 @using Microsoft.AspNetCore.SignalR.Client
 
@@ -27,6 +28,13 @@
                                     @onclick="() => EditMesssage(message)" >
                                 Edit
                             </button>
+                            <Confirm    Title="Delete Message"
+                                        OnModalDone="@MessageDeleteCallback"
+                                        @ref="_deleteMessageModal"></Confirm>
+                            <button class="btn-danger" type="button"
+                                    @onclick="() => MessageDelete(message)">
+                                Delete
+                            </button>
                         }
                     }
                 </li>
@@ -48,11 +56,13 @@
     private int _editMessageId = -1;
     private bool _editMessage = false;
     private string _updatedMessage = string.Empty;
+    private ChatMessageDto? _deleteMessage = null;
     private ElementReference _messageListWrapper;
+    private Confirm? _deleteMessageModal;
 
     private string GetMessageColor(int userId)
     {
-        return MemberColors?.TryGetValue(userId, out string? color) == true ? color : "#636CCB";
+        return MemberColors?.TryGetValue(userId, out string? color) == true ? color : "#6e8cfb14";
     }
 
     private void EditMesssage(ChatMessageDto message)
@@ -92,6 +102,24 @@
 
         await MessageHubConnection.SendAsync("EditMessage", message);
         await InvokeAsync(StateHasChanged);
+    }
+
+    private async void MessageDeleteCallback(bool status)
+    {
+        if (status && _deleteMessageModal is not null && _deleteMessage is not null)
+        {
+            await MessageHubConnection.SendAsync("DeleteMessage", _deleteMessage);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void MessageDelete(ChatMessageDto message)
+    {
+        if (_deleteMessageModal is not null)
+        {
+            _deleteMessage = message;
+            _deleteMessageModal.ShowModal();
+        }
     }
 
     private async Task ScrollToBottom()
