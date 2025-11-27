@@ -1,4 +1,4 @@
-﻿@using COMP4952_Sockim.Components.Pages
+@using COMP4952_Sockim.Components.Pages
 @using COMP4952_Sockim.Hubs
 @using COMP4952_Sockim.Services
 @using Microsoft.AspNetCore.Authorization
@@ -39,8 +39,14 @@
         }
     </div>
     <div class="chat-header-controls">
-        <button type="button" class="btn-danger" @onclick="CloseChat">Close</button>
-        <button type="button" class="btn-regular" @onclick="@OpenChatOptions">Chat Options</button>
+        <button type="button" class="btn-danger" @onclick="CloseChat">
+            <img src="/images/Icons/close_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Close" />
+            Close
+        </button>
+        <button type="button" class="btn-regular" @onclick="@OpenChatOptions">
+            <img src="/images/Icons/group_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Options" />
+            Chat Options
+        </button>
     </div>
 </div>
 <div class="chat-content">
@@ -54,7 +60,10 @@
         <label for="message-input">Message:</label>
         <div class="chat-input-controls">
             <input id="message-input" @bind="_message" class="message-input" />
-            <button class="btn-regular" @onclick="Send">Send</button>
+            <button class="btn-regular" @onclick="Send">
+                <img src="/images/Icons/arrow_upward_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Send" />
+                Send
+            </button>
         </div>
     </div>
 </div>

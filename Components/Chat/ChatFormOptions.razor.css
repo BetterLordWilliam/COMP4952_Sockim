@@ -36,10 +36,21 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
     /*background: rgba(60,70,123,0.10);*/
     background: var(--bg);
     border-radius: 8px;
     padding: 8px 16px;
+}
+
+.member-item button {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
+.member-item button img {
+    width: 16px;
+    height: 16px;
 }
 
 .invite-controls {

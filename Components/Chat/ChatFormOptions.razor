@@ -1,4 +1,4 @@
-﻿@using COMP4952_Sockim.Components.Account.Pages.Manage
+@using COMP4952_Sockim.Components.Account.Pages.Manage
 @using COMP4952_Sockim.Components.Elements
 @using COMP4952_Sockim.Data
 @using COMP4952_Sockim.Models
@@ -26,7 +26,10 @@
         {
             <div class="rename-chat-controls">
                 <h3 class="chat-name">@ChatDto?.ChatName</h3>
-                <button class="btn-regular rename-button" type="button" @onclick="@RenameChat">Rename</button>
+                <button class="btn-regular rename-button" type="button" @onclick="@RenameChat">
+                    <img src="/images/Icons/edit_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Edit" />
+                    Rename
+                </button>
             </div>
         }
         <hr />
@@ -35,7 +38,10 @@
             <div class="invite-controls">
                 <input class="invite-email-input" type="email" @bind="_inviteEmail"
                     placeholder="Enter email address of new member" />
-                <button type="button" class="btn-regular invite-button" @onclick="InviteMember">Invite</button>
+                <button type="button" class="btn-regular invite-button" @onclick="InviteMember">
+                    <img src="/images/Icons/person_add_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Invite" />
+                    Invite
+                </button>
             </div>
             @if (!string.IsNullOrEmpty(_inviteStatus))
             {
@@ -51,14 +57,20 @@
                         <span class="member-email">@member.Email</span>
                         @if (_isOwner && member.Id != User.Id)
                         {
-                            <button type="button" class="btn-regular" @onclick="() => PromoteToOwner(member.Id)" title="Promote to owner">Promote</button>
+                            <button type="button" class="btn-regular" @onclick="() => PromoteToOwner(member.Id)" title="Promote to owner">
+                                <img src="/images/Icons/person_edit_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Promote" />
+                                Promote
+                            </button>
                         }
                         @if (member.Id != User.Id)
                         {
                             <Confirm    OnModalDone="@RemoveConfirmCallback"
                                         Title="Remove Member"
                                         @ref="_confirmRemove"/>
-                            <button type="button" class="btn-danger" @onclick="() => RemoveMember(member.Id, _confirmRemove!)" title="Remove member">Remove</button>
+                            <button type="button" class="btn-danger" @onclick="() => RemoveMember(member.Id, _confirmRemove!)" title="Remove member">
+                                <img src="/images/Icons/delete_forever_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Remove" />
+                                Remove
+                            </button>
                         }
                     </li>
                 }
@@ -89,8 +101,14 @@
         <Confirm    OnModalDone="@RemoveConfirmCallback"
                     Title="Leave chat"
                     @ref="_confirmLeave" />
-        <button class="btn-danger" type="button" @onclick="() => RemoveMember(User.Id, _confirmLeave!)">Leave Chat</button>
-        <button class="btn-danger" type="button" @onclick="@CloseChatOptions">Close</button>
+        <button class="btn-danger" type="button" @onclick="() => RemoveMember(User.Id, _confirmLeave!)">
+            <img src="/images/Icons/arrow_back_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Leave" />
+            Leave Chat
+        </button>
+        <button class="btn-danger" type="button" @onclick="@CloseChatOptions">
+            <img src="/images/Icons/close_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Close" />
+            Close
+        </button>
     </div>
 </div>
 

@@ -1,4 +1,4 @@
-﻿@using COMP4952_Sockim.Components.Account.Pages.Manage
+@using COMP4952_Sockim.Components.Account.Pages.Manage
 @using COMP4952_Sockim.Hubs
 @using COMP4952_Sockim.Models
 @using COMP4952_Sockim.Data
@@ -27,9 +27,15 @@
                                     <br />
                                     <span>invited by @invitation.SenderEmail</span>
                                 </div>
-                                <div class="invitation-options">
-                                    <button type="button" class="btn-accept" @onclick="() => AcceptInvitation(invitation)" title="Accept invitation">Accept</button>
-                                    <button type="button" class="btn-reject" @onclick="() => RejectInvitation(invitation)" title="Reject invitation">Reject</button>
+                                <div class="invitation-actions">
+                                    <button type="button" class="btn-accept" @onclick="() => AcceptInvitation(invitation)" title="Accept invitation">
+                                        <img src="/images/Icons/check_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Accept" />
+                                        Accept
+                                    </button>
+                                    <button type="button" class="btn-reject" @onclick="() => RejectInvitation(invitation)" title="Reject invitation">
+                                        <img src="/images/Icons/close_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Reject" />
+                                        Reject
+                                    </button>
                                 </div>
                             </div>
                         }
