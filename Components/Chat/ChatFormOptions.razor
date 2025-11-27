@@ -2,9 +2,11 @@
 @using COMP4952_Sockim.Components.Elements
 @using COMP4952_Sockim.Data
 @using COMP4952_Sockim.Models
+@using COMP4952_Sockim.Services
 @using Microsoft.AspNetCore.SignalR.Client
 
 @inject IJSRuntime JSRuntime
+@inject UserPreferenceService UserPreferenceService
 
 <div class="modal">
     <div class="modal-content members-panel">
@@ -110,6 +112,27 @@
     private string _updatedChatName = string.Empty;
     private int? _memberToRemove;
 
+    protected override async Task OnInitializedAsync()
+    {
+        if (MemberColors != null && ChatMembers != null && User != null && ChatDto != null)
+        {
+            var savedPreferences = await UserPreferenceService.GetChatUserPreferencesAsync(User.Id, ChatDto.Id);
+            
+            foreach (var member in ChatMembers)
+            {
+                if (savedPreferences.TryGetValue(member.Id, out var savedColor))
+                {
+                    MemberColors[member.Id] = savedColor;
+                }
+                else
+                {
+                    MemberColors.TryAdd(member.Id, "#6e8cfb14");
+                }
+            }
+        }
+    }
+
+    /* 
     protected override void OnInitialized()
     {
         if (MemberColors != null && ChatMembers != null)
@@ -119,7 +142,8 @@
                 MemberColors.TryAdd(member.Id, "#6e8cfb14");
             }
         }
-    }
+    } 
+    */
 
     private string GetMemberColor(int memberId)
     {
@@ -128,12 +152,15 @@
 
     private async Task UpdateMemberColor(int memberId, string? newColor)
     {
-        if (string.IsNullOrEmpty(newColor) || MemberColors == null)
+        if (string.IsNullOrEmpty(newColor) || MemberColors == null || User == null || ChatDto == null)
         {
             return;
         }
 
         MemberColors[memberId] = newColor;
+        
+        await UserPreferenceService.SaveUserPreferencesAsync(User.Id, ChatDto.Id, memberId, newColor);
+        
         await InvokeAsync(StateHasChanged);
     }
 

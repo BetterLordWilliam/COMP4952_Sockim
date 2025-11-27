@@ -83,6 +83,7 @@ builder.Services.AddScoped<ChatService>();
 builder.Services.AddScoped<ChatUserService>();
 builder.Services.AddScoped<MessagesService>();
 builder.Services.AddScoped<InvitationsService>();
+builder.Services.AddScoped<UserPreferenceService>();
 
 var app = builder.Build();
 

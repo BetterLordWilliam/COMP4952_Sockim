@@ -8,6 +8,8 @@
 @using Microsoft.Build.Framework
 @using COMP4952_Sockim.Data
 @using COMP4952_Sockim.Models
+
+@inject UserPreferenceService UserPreferenceService
 @using System.Security.Claims
 
 @rendermode InteractiveServer
@@ -82,6 +84,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _memberColors = await UserPreferenceService.GetChatUserPreferencesAsync(User.Id, ChatDto.Id);
+        
         if (ChatHubConnection is not null)
         {
             ChatHubConnection.On<ChatUserDto>("MemberJoined", (ChatUserDto user) => {

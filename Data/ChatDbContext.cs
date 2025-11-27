@@ -13,6 +13,7 @@ public class ChatDbContext : IdentityDbContext<ChatUser, IdentityRole<int>, int>
     public DbSet<Chat> Chats { get; set; }
     public DbSet<ChatMessage> Messages { get; set; }
     public DbSet<ChatInvitation> Invitations { get; set; }
+    public DbSet<ChatUserPreference> UserPreferences { get; set; }
 
     public ChatDbContext(DbContextOptions<ChatDbContext> options) : base(options)
     {
@@ -71,5 +72,25 @@ public class ChatDbContext : IdentityDbContext<ChatUser, IdentityRole<int>, int>
             .IsRequired()
             .HasForeignKey(e => e.ChatUserId)
             .OnDelete(DeleteBehavior.NoAction);
+
+        builder.Entity<ChatUserPreference>()
+            .HasOne(p => p.User)
+            .WithMany()
+            .HasForeignKey(p => p.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<ChatUserPreference>()
+            .HasOne(p => p.Chat)
+            .WithMany()
+            .HasForeignKey(p => p.ChatId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<ChatUserPreference>()
+            .HasIndex(p => new {
+                p.UserId,
+                p.ChatId,
+                p.MemberId
+            })
+            .IsUnique();
     }
 }
