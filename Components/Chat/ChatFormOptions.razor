@@ -48,17 +48,22 @@
                 @foreach (var member in ChatMembers)
                 {
                     <li class="member-item">
-                            <span class="member-email">@member.Email</span>
-                            @if (member.Id != User.Id)
-                            {
-                                <Confirm    OnModalDone="@RemoveConfirmCallback"
-                                            Title="Remove Member"
-                                            @ref="_confirmRemove"/>
-                                <button type="button" class="btn-danger" @onclick="() => RemoveMember(member.Id, _confirmRemove!)" title="Remove member">Remove</button>
-                            }
+                        <span class="member-email">@member.Email</span>
+                        @if (_isOwner && member.Id != User.Id)
+                        {
+                            <button type="button" class="btn-regular" @onclick="() => PromoteToOwner(member.Id)" title="Promote to owner">Promote</button>
+                        }
+                        @if (member.Id != User.Id)
+                        {
+                            <Confirm    OnModalDone="@RemoveConfirmCallback"
+                                        Title="Remove Member"
+                                        @ref="_confirmRemove"/>
+                            <button type="button" class="btn-danger" @onclick="() => RemoveMember(member.Id, _confirmRemove!)" title="Remove member">Remove</button>
+                        }
                     </li>
                 }
             </ul>
+
         }
         <h3>Message Colors</h3>
         <div class="color-settings">
@@ -259,5 +264,16 @@
         // bool confirm = await JSRuntime.InvokeAsync<bool>("confirm", "are you sure?");
         _memberToRemove = memberId;
         confirm?.ShowModal();
+    }
+
+    /// <summary>
+    /// Promote another chatter to be the owner
+    /// </summary>
+    private async Task PromoteToOwner(int memberId)
+    {
+        if (ChatHubConnection is not null && ChatDto is not null)
+        {
+            await ChatHubConnection.SendAsync("PromoteToChatOwner", ChatDto.Id, memberId);
+        }
     }
 }

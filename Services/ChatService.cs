@@ -171,6 +171,55 @@ public class ChatService
     }
 
     /// <summary>
+    /// Promotes a user to owner of the chat.
+    /// </summary>
+    /// <param name="chatId"></param>
+    /// <param name="newOwnerId"></param>
+    /// <returns></returns>
+    /// <exception cref="ChatNotFoundException"></exception>
+    /// <exception cref="ChatUserNotFoundException"></exception>
+    /// <exception cref="ChatException"></exception>
+    public async Task<ChatDto> PromoteToOwner(int chatId, int newOwnerId)
+    {
+        try 
+        {
+            Chat? chat = await _chatDbContext.Chats
+                .Include(c => c.ChatUsers)
+                .Include(c => c.ChatOwner)
+                .FirstOrDefaultAsync(c => c.Id == chatId);
+            
+            if (chat is null)
+            {
+                _logger.LogError($"Chat {chatId} not found");
+                throw new ChatNotFoundException();
+            }
+
+            if (!chat.ChatUsers.Any(u => u.Id == newOwnerId))
+            {
+                _logger.LogError($"User {newOwnerId} is not a member of chat {chatId}");
+                throw new ChatUserNotFoundException($"User {newOwnerId} is not a member of this chat");
+            }
+
+            chat.ChatOwnerId = newOwnerId;
+            await _chatDbContext.SaveChangesAsync();
+
+            _logger.LogInformation($"User {newOwnerId} promoted to owner of chat {chatId}");
+            
+            return ConvertToDto(chat);
+        }
+        catch (OperationCanceledException ex)
+        {
+            _logger.LogError($"Operation cancelled while promoting: {ex.Message}");
+            throw new ChatException();
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError($"Database error while promoting: {ex.Message}");
+            throw new ChatException();
+        }
+    }
+
+    /// <summary>
     /// Gets all the chats for a user.
     /// </summary>
     /// <param name="userId"></param>

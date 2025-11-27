@@ -310,6 +310,27 @@ public class ChatHub : Hub
         }
     }
 
+    public async Task PromoteToChatOwner(int chatId, int newOwnerId)
+    {
+        try
+        {
+            ChatDto updatedChat = await _chatService.PromoteToOwner(chatId, newOwnerId);
+            await Clients.Group($"chat-{chatId}").SendAsync("ChatUpdated", updatedChat);
+        }
+            catch (ChatNotFoundException ex)
+        {
+            await Clients.Caller.SendAsync("Error", "Chat not found");
+        }
+        catch (ChatUserNotFoundException ex)
+        {
+            await Clients.Caller.SendAsync("Error", "User is not a member of this chat");
+        }
+        catch (ChatException ex)
+        {
+            await Clients.Caller.SendAsync("Error", "Failed to promote user");
+        }
+    }
+
     public async Task GetChatMembers(int chatId)
     {
         try
