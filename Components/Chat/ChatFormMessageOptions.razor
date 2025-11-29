@@ -82,11 +82,20 @@
         }
     }
 
-    public void DeleteSelectedConfirmedResult(bool result)
+    public async void DeleteSelectedConfirmedResult(bool result)
     {
         if (result && _deleteSelected is not null)
         {
-            _deleteSelected.ShowModal();
+            List<Task> deleteMessages = new ();
+            foreach (var chatMessage in ChatMessages)
+            {
+                if (chatMessage.ChatUserId == User.Id
+                    && chatMessage.IsSelected)
+                {
+                    deleteMessages.Add(MessageHubConnection.SendAsync("DeleteMessage", chatMessage));
+                }
+            }
+            await Task.WhenAll(deleteMessages.ToArray());
         }
     }
 
@@ -94,13 +103,15 @@
     {
         if (result && _deleteAll is not null)
         {
+            List<Task> deleteMessages = new ();
             foreach (var chatMessage in ChatMessages)
             {
                 if (chatMessage.ChatUserId == User.Id)
                 {
-                    await MessageHubConnection.SendAsync("DeleteMessage", chatMessage);
+                    deleteMessages.Add(MessageHubConnection.SendAsync("DeleteMessage", chatMessage));
                 }
             }
+            await Task.WhenAll(deleteMessages.ToArray());
         }
     }
 
