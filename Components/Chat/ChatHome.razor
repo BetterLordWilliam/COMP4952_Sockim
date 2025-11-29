@@ -1,4 +1,4 @@
-@using COMP4952_Sockim.Services
+﻿@using COMP4952_Sockim.Services
 @using COMP4952_Sockim.Data
 @using COMP4952_Sockim.Models
 @using Microsoft.AspNetCore.Identity
@@ -17,7 +17,11 @@
     <ChatErrors ChatHubConnection="@_chatHubConnection" Errors="@_errors"></ChatErrors>
     <div class="main-content">
         <div class="main-content-header">
-            <ChatInvitations ChatHubConnection="@_chatHubConnection" Invitations="@_invitations" User="@_user" />
+            <ChatInvitations
+                ChatHubConnection="@_chatHubConnection"
+                Invitations="@_invitations"
+                User="@_user"
+                @ref="@_chatInvitations" />
         </div>
         <hr />
         @if(!_chatOpen)
@@ -62,14 +66,14 @@
     private List<SockimMessage> _infoMessages = [];
 
     private HubConnection? _chatHubConnection;
-    private HubConnection? _invitationHubConnection;
     private HubConnection? _messageHubConnection;
 
     private bool _showCreateChat = false;
     private bool _chatOpen = false;
     private bool IsChatConnected => _chatHubConnection?.State == HubConnectionState.Connected;
-    private bool IsInvitationConnected => _invitationHubConnection?.State == HubConnectionState.Connected;
     private bool IsMessageConnected => _messageHubConnection?.State == HubConnectionState.Connected;
+
+    public required ChatInvitations _chatInvitations;
 
     protected override async Task OnInitializedAsync()
     {
@@ -128,6 +132,7 @@
 
             _chatHubConnection.On<ChatInvitationDto>("IncomingInvitation", (ChatInvitationDto) => {
                 _invitations.Add(ChatInvitationDto);
+                _chatInvitations.ShowNotificationBadge();
                 InvokeAsync(StateHasChanged);
             });
 

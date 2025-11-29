@@ -1,4 +1,5 @@
 @using COMP4952_Sockim.Components.Account.Pages.Manage
+@using COMP4952_Sockim.Components.Account.Shared
 @using COMP4952_Sockim.Hubs
 @using COMP4952_Sockim.Models
 @using COMP4952_Sockim.Data
@@ -10,7 +11,14 @@
 
 
 <div style="margin-right: auto;">
-    <button class="btn-regular" @onclick="ToggleModal">Show Invitations (@Invitations.Count)</button>
+    <div class="inv-controls">
+        <button class="btn-regular btn-show-inv" @onclick="ToggleModal">
+            <p class="inv-label">Show Invitations</p>
+            @if(_showBadge) {
+                <div class="inv-icon badge-icon"></div>
+            }
+        </button>
+    </div>
     @if (_showModal)
     {
         <div class="modal">
@@ -60,7 +68,43 @@
     public List<ChatInvitationDto> Invitations { get; set; } = [];
 
     private bool _showModal = false;
-    private void ToggleModal() => _showModal = !_showModal;
+    private bool _showBadge = false;
+
+    /// <summary>
+    /// Toggles the visibility of the modal view and the badge (onopen/close)
+    /// </summary>
+    public void ToggleModal()
+    {
+        _showModal = !_showModal;
+        if (_showModal)
+            HideNotificationBadge();
+        if (!_showModal)
+            HideNotificationBadge();
+    }
+
+    /// <summary>
+    /// Toggles the visibility of the notification badge.
+    /// </summary>
+    public void ToggleNotificationBadge()
+    {
+        _showBadge = !_showBadge;
+    }
+
+    /// <summary>
+    /// Shows the notification badge.
+    /// </summary>
+    public void ShowNotificationBadge()
+    {
+        _showBadge = true;
+    }
+
+    /// <summary>
+    /// Hides the notification badge.
+    /// </summary>
+    public void HideNotificationBadge()
+    {
+        _showBadge = false;
+    }
 
     /// <summary>
     /// Accepts an invitation and removes it from the pending list.

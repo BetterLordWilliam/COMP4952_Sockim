@@ -19,6 +19,27 @@
     overflow: scroll;
 }
 
+.inv-label {
+    margin-bottom: 0;
+    text-align: left;
+    flex-grow: 1;
+}
+
+.inv-icon {
+    flex-shrink: 0;
+    /* right: 2%; */
+    /* position: absolute; */
+}
+
+.btn-show-inv {
+    width: 160px;
+    /* position: relative; */
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    padding-right: 4px;
+}
+
 /* .invitation-item .btn-accept, .btn-reject {
     background: var(--secondary);
 } */
