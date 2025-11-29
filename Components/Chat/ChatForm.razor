@@ -29,6 +29,10 @@
                         CloseChatOptions="@CloseChatOptions"></ChatFormOptions>
 }
 
+@if(_showChatMessageOptions) {
+    <ChatFormMessageOptions CloseChatMessageOptions="@CloseChatMessageOptions"/>
+}
+
 <div class="chat-header">
     <div class="chat-header-info">
         @ChatDto.ChatName
@@ -46,6 +50,10 @@
         <button type="button" class="btn-regular" @onclick="@OpenChatOptions">
             <img src="/images/Icons/group_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Options" />
             Chat Options
+        </button>
+        <button type="button" class="btn-regular" @onclick="@OpenChatMessageOptions">
+            <img src="/images/Icons/group_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Message Options" />
+            Manage Chat Messages
         </button>
     </div>
 </div>
@@ -89,6 +97,7 @@
     private List<ChatUserDto> _chatMembers = [];
     private string _message = string.Empty;
     private bool _showChatOptions = false;
+    private bool _showChatMessageOptions = false;
     private Dictionary<int, string> _memberColors = new();
 
     protected override async Task OnInitializedAsync()
@@ -164,6 +173,8 @@
         }
     }
 
+#region:Modal controls
+
     private void OpenChatOptions()
     {
         _showChatOptions = true;
@@ -173,6 +184,18 @@
     {
         _showChatOptions = false;
     }
+
+    private void OpenChatMessageOptions()
+    {
+        _showChatMessageOptions = true;
+    }
+
+    private void CloseChatMessageOptions()
+    {
+        _showChatMessageOptions = false;
+    }
+
+#endregion
 
     private async Task ScrollToBottom()
     {

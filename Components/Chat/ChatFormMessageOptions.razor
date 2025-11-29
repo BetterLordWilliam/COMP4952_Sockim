@@ -1,0 +1,12 @@
+﻿<div class="modal">
+    <p>Chat Message Management</p>
+    <button class="btn-danger" type="button" @onclick="@CloseChatMessageOptions">
+        <img src="/images/Icons/close_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Close" />
+        Close
+    </button>
+</div>
+
+@code {
+    [Parameter]
+    public required EventCallback CloseChatMessageOptions { get; set; }
+}
