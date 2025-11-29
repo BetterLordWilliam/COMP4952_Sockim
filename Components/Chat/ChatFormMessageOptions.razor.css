@@ -19,3 +19,9 @@
     border-radius: 8px;
     padding: 8px 16px;
 }
+
+.message-controls {
+    display: flex;
+    flex-direction: row;
+    gap: var(--small-gap);
+}

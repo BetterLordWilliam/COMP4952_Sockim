@@ -1,18 +1,51 @@
 ﻿@using COMP4952_Sockim.Models
+@using COMP4952_Sockim.Data
 @using COMP4952_Sockim.Components.Elements
+@using Microsoft.AspNetCore.SignalR.Client
+
+@implements IAsyncDisposable
 
 <div class="modal">
     <div class="modal-content">
-        <p>Chat Message Management</p>
-        <div class="message-list">
+        <h3>Message Management</h3>
+        <div>Your messages</div>
+        <ul class="message-list">
             @foreach (var chatMessage in ChatMessages)
             {
-                <div>
-                    <p>@chatMessage.MessageContent</p>
-                </div>
+                @if (chatMessage.ChatUserId == User.Id)
+                {
+                    <li>
+                        <input type="checkbox" @bind="chatMessage.IsSelected" />
+                        <p>@chatMessage.MessageContent</p>
+                    </li>
+                }
             }
+        </ul>
+        <div class="message-controls">
+            <button class="btn-regular btn-deselect-all"
+                    @onclick="@DeselectAll">
+                Deselect All
+            </button>
+            <button class="btn-regular btn-select-all"
+                    @onclick="@SelectAll">
+                Select All
+            </button>
+            <Confirm    Title="Delete selected Chat Messages?"
+                        OnModalDone="@DeleteSelectedConfirmedResult"
+                        @ref="@_deleteSelected"></Confirm>
+            <button class="btn-danger"
+                    @onclick="@(() => { if (_deleteSelected is not null) { _deleteSelected.ShowModal(); } })">
+                Delete Selected Messages
+            </button>
+            <Confirm    Title="Delete all Chat Messages?"
+                        OnModalDone="@DeleteAllConfirmedResult"
+                        @ref="@_deleteAll"></Confirm>
+            <button class="btn-danger"
+                    @onclick="@(() => { if (_deleteAll is not null) { _deleteAll.ShowModal(); } })">
+                Delete All Messages
+            </button>
         </div>
-
+        <hr />
         <button class="btn-danger" type="button" @onclick="@CloseChatMessageOptions">
             <img src="/images/Icons/close_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Close" />
             Close
@@ -22,7 +55,60 @@
 
 @code {
     [Parameter]
+    public required ChatUser User { get; set; }
+    [Parameter]
     public required List<ChatMessageDto> ChatMessages { get; set; }
     [Parameter]
     public required EventCallback CloseChatMessageOptions { get; set; }
+    [Parameter]
+    public required HubConnection MessageHubConnection { get; set; }
+
+    private Confirm? _deleteSelected { get; set; }
+    private Confirm? _deleteAll { get; set; }
+
+    private void SelectAll()
+    {
+        foreach (var chatMessage in ChatMessages)
+        {
+            chatMessage.IsSelected = true;
+        }
+    }
+
+    private void DeselectAll()
+    {
+        foreach (var chatMessage in ChatMessages)
+        {
+            chatMessage.IsSelected = false;
+        }
+    }
+
+    public void DeleteSelectedConfirmedResult(bool result)
+    {
+        if (result && _deleteSelected is not null)
+        {
+            _deleteSelected.ShowModal();
+        }
+    }
+
+    public async void DeleteAllConfirmedResult(bool result)
+    {
+        if (result && _deleteAll is not null)
+        {
+            foreach (var chatMessage in ChatMessages)
+            {
+                if (chatMessage.ChatUserId == User.Id)
+                {
+                    await MessageHubConnection.SendAsync("DeleteMessage", chatMessage);
+                }
+            }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        foreach (var chatMessage in ChatMessages)
+        {
+            chatMessage.IsSelected = false;
+        }
+    }
 }

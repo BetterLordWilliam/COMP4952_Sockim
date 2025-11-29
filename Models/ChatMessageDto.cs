@@ -10,6 +10,7 @@ public class ChatMessageDto : IEquatable<ChatMessageDto>
     public string SenderEmail { get; set; } = string.Empty;
     public DateTime MessageDateTime { get; set; }
     public string MessageContent { get; set; } = string.Empty;
+    public bool IsSelected { get; set; }
 
     public bool Equals(ChatMessageDto? other)
     {

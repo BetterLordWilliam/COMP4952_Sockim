@@ -32,6 +32,8 @@
 @if(_showChatMessageOptions) {
     <ChatFormMessageOptions 
                         ChatMessages="@_messages"
+                        User="@User"
+                        MessageHubConnection="@MessageHubConnection"
                         CloseChatMessageOptions="@CloseChatMessageOptions"/>
 }
 
