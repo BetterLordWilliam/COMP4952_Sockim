@@ -1,12 +1,28 @@
-﻿<div class="modal">
-    <p>Chat Message Management</p>
-    <button class="btn-danger" type="button" @onclick="@CloseChatMessageOptions">
-        <img src="/images/Icons/close_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Close" />
-        Close
-    </button>
+﻿@using COMP4952_Sockim.Models
+@using COMP4952_Sockim.Components.Elements
+
+<div class="modal">
+    <div class="modal-content">
+        <p>Chat Message Management</p>
+        <div class="message-list">
+            @foreach (var chatMessage in ChatMessages)
+            {
+                <div>
+                    <p>@chatMessage.MessageContent</p>
+                </div>
+            }
+        </div>
+
+        <button class="btn-danger" type="button" @onclick="@CloseChatMessageOptions">
+            <img src="/images/Icons/close_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Close" />
+            Close
+        </button>
+    </div>
 </div>
 
 @code {
+    [Parameter]
+    public required List<ChatMessageDto> ChatMessages { get; set; }
     [Parameter]
     public required EventCallback CloseChatMessageOptions { get; set; }
 }

@@ -8,6 +8,7 @@
 @using System.Numerics
 
 @rendermode InteractiveServer
+@implements IAsyncDisposable
 @inject NavigationManager NavManager
 @inject UserManager<ChatUser> UserManager
 @inject ChatService ChatService
@@ -44,7 +45,6 @@
                         ChatHubConnection="@_chatHubConnection"
                         CloseChat="@CloseChat"
                         ChatDto="@_chat"
-                        Messages="@_messages"
                         User="@_user" />
         }
     </div>
@@ -61,7 +61,6 @@
 
     private List<ChatDto> _chats = [];
     private List<ChatInvitationDto> _invitations = [];
-    private List<ChatMessageDto> _messages = [];
     private List<SockimError> _errors = [];
     private List<SockimMessage> _infoMessages = [];
 
@@ -213,5 +212,16 @@
     {
         _chatOpen = false;
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Disconnect from the server if the component is disposed.
+    /// </summary>
+    public async ValueTask DisposeAsync()
+    {
+        if (_chatHubConnection.State == HubConnectionState.Connected)
+            await _chatHubConnection.StopAsync();
+        if (_messageHubConnection.State == HubConnectionState.Connected)
+            await _messageHubConnection.StopAsync();
     }
 }
