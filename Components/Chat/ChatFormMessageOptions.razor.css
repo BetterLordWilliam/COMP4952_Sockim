@@ -25,3 +25,10 @@
     flex-direction: row;
     gap: var(--small-gap);
 }
+
+.chat-message {
+    white-space: nowrap;
+    display: inline;
+    overflow: hidden; 
+    text-overflow: ellipsis;
+}
