@@ -9,13 +9,13 @@
 @if (User is not null)
 {
     <div class="chat-list">
-        @foreach(ChatDto chat in Chats)
+        @foreach (ChatDto chat in Chats)
         {
             <button class="btn-regular-expand" type="button" @onclick="() => OpenChat(chat)">
                 <p>@chat.ChatName</p>
                 @chat.Unread
-                    <div class="inv-icon badge-icon"></div>
-                    <p>@chat.MostRecent?.MessageContent</p>
+                <div class="inv-icon badge-icon"></div>
+                <p>@chat.MostRecent?.MessageContent</p>
             </button>
         }
     </div>
@@ -35,10 +35,9 @@
     {
         if (ChatHubConnection is not null)
         {
-            ChatHubConnection.On<ChatMessageDto>("NewChatMessage", (newMessage) => {
-                Console.WriteLine($"OHHHHH I HAVE RECEIVED A MESSAGE {User.Id}");
+            ChatHubConnection.On<ChatMessageDto>("NewChatMessage", (newMessage) =>
+            {
                 var chat = Chats.Where(c => c.Id == newMessage.ChatId).FirstOrDefault();
-                Console.WriteLine(chat.Unread);
                 if (chat is not null)
                 {
                     chat.Unread = true;
