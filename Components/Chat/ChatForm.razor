@@ -125,7 +125,7 @@
 
             ChatHubConnection.On<ChatDto>("ChatUpdated", (ChatDto chat) => {
                 Console.WriteLine($"{chat.ChatOwnerId}, {chat.ChatName}");
-                ChatDto = chat;
+                // ChatDto = chat;
                 InvokeAsync(StateHasChanged);
             });
 

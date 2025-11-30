@@ -14,18 +14,18 @@
             <div class="chat">
                 <div class="chat-info-container" @onclick="() => OpenChat(chat)">
                     <div class="chat-info">
-                        <div class="chat-into-name">@chat.ChatName</div>
+                        <div class="chat-info-name">@chat.ChatName</div>
                         @if (chat.Unread)
                         {
                             <div class="chat-info-preview">
-                                <div>@chat.MostRecent?.SenderEmail</div>
+                                <div class="chat-info-preview-sender-email">@chat.MostRecent?.SenderEmail</div>
                                 <div class="chat-info-preview-message">@chat.MostRecent?.MessageContent</div>
                             </div>
                         }
                     </div>
                     @if (chat.Unread)
                     {
-                        <div class="inv-icon badge-icon"></div>
+                        <div class="chat-icon badge-icon"></div>
                     }
                 </div>
                 <button class="btn-danger leave-btn">Leave</button>

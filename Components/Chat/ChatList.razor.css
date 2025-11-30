@@ -37,21 +37,32 @@
 .chat-info-container {
     display: flex;
     flex-direction: row;
+    position: relative;
 }
 
 .chat-info {
     flex-grow: 1;
+    width: 100%;
+}
+
+.chat-info-name {
+    margin-right: 6px;
 }
 
 .chat-info-preview {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     justify-content: space-between;
     gap: 8px;
+    width: 100%;
     /*background: rgba(60,70,123,0.10);*/
     background: var(--card-bg);
     border-radius: 8px;
     padding: 8px 16px;
+}
+
+.chat-info-preview-sender-email {
+    color: var(--accent);
 }
 
 .chat-info-preview-message {
@@ -63,4 +74,9 @@
 
 .leave-btn {
     width: 75px;
+}
+
+.chat-icon {
+    position: absolute;
+    right: 0;
 }

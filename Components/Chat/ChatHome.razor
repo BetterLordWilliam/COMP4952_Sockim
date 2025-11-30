@@ -110,7 +110,7 @@
 
             _chatHubConnection.On<ChatMessageDto>("NewChatMessage", (newMessage) =>
             {
-                var chatIdx = _chats.FindIndex(c => c.Id == newMessage.ChatId);
+                int chatIdx = _chats.FindIndex(c => c.Id == newMessage.ChatId);
                 try
                 {
                     Console.WriteLine("NEW CHAT MESSAGE");
@@ -147,7 +147,7 @@
 
             _chatHubConnection.On<ChatDto>("ChatUpdated", (ChatDto chat) =>
             {
-                int index = _chats.IndexOf(chat);
+                int index = _chats.FindIndex(c => c.Id == chat.Id);
                 try
                 {
                     _chats[index].ChatName = chat.ChatName;
