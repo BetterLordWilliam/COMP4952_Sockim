@@ -1,14 +1,22 @@
 @using COMP4952_Sockim.Data
 @using COMP4952_Sockim.Models
 @using Microsoft.AspNetCore.SignalR.Client
+@using Org.BouncyCastle.Crypto.Modes
 
+@rendermode InteractiveServer
+@implements IAsyncDisposable
 
-@if (User is not null && Chats is not null && ChatHubConnection is not null)
+@if (User is not null)
 {
     <div class="chat-list">
         @foreach(ChatDto chat in Chats)
         {
-            <button class="btn-regular-expand" type="button" @onclick="() => OpenChat(chat)">@chat.ChatName</button>
+            <button class="btn-regular-expand" type="button" @onclick="() => OpenChat(chat)">
+                <p>@chat.ChatName</p>
+                @chat.Unread
+                    <div class="inv-icon badge-icon"></div>
+                    <p>@chat.MostRecent?.MessageContent</p>
+            </button>
         }
     </div>
 }
@@ -17,14 +25,41 @@
     [Parameter]
     public EventCallback<ChatDto> ChatOpened { get; set; }
     [Parameter]
-    public HubConnection? ChatHubConnection { get; set; }
+    public required HubConnection ChatHubConnection { get; set; }
     [Parameter]
-    public List<ChatDto>? Chats { get; set; }
+    public required List<ChatDto> Chats { get; set; }
     [Parameter]
-    public ChatUser? User { get; set; }
+    public required ChatUser User { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (ChatHubConnection is not null)
+        {
+            ChatHubConnection.On<ChatMessageDto>("NewChatMessage", (newMessage) => {
+                Console.WriteLine($"OHHHHH I HAVE RECEIVED A MESSAGE {User.Id}");
+                var chat = Chats.Where(c => c.Id == newMessage.ChatId).FirstOrDefault();
+                Console.WriteLine(chat.Unread);
+                if (chat is not null)
+                {
+                    chat.Unread = true;
+                    chat.MostRecent = newMessage;
+                    InvokeAsync(StateHasChanged);
+                }
+            });
+        }
+    }
 
     private async Task OpenChat(ChatDto chat)
     {
+        chat.Unread = false;
         await ChatOpened.InvokeAsync(chat);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (ChatHubConnection is not null)
+        {
+            ChatHubConnection.Remove("NewChatMessage");
+        }
     }
 }

@@ -66,6 +66,7 @@
 
     private HubConnection? _chatHubConnection;
     private HubConnection? _messageHubConnection;
+    private HubConnection? _notificationHubConnection;
 
     private bool _showCreateChat = false;
     private bool _chatOpen = false;
@@ -102,6 +103,7 @@
 
             _chatHubConnection.On<ChatDto[]>("RetrievedChats", (ChatDto[] retrievedChats) =>
             {
+                Console.WriteLine(retrievedChats[0].InvitedEmails);
                 _chats = retrievedChats.ToList();
                 InvokeAsync(StateHasChanged);
             });
@@ -172,7 +174,8 @@
                 .Build();
 
             _messageHubConnection.On<SockimError>("Error", (SockimError error) => {
-                Console.WriteLine($"CLIENT ERROR RECEIVED: {error.Message}");
+                _errors.Add(error);
+                InvokeAsync(StateHasChanged);
             });
 
             _messageHubConnection.On<SockimMessage>("MessageDeletedSuccess", (SockimMessage message) => {
@@ -180,12 +183,22 @@
                 InvokeAsync(StateHasChanged);
             });
 
+            _notificationHubConnection = new HubConnectionBuilder()
+                .WithUrl(NavManager.ToAbsoluteUri("/notifhub"))
+                .WithAutomaticReconnect()
+                .Build();
+
             if (_chatHubConnection.State == HubConnectionState.Disconnected)
                 await _chatHubConnection.StartAsync();
             if (_messageHubConnection.State == HubConnectionState.Disconnected)
                 await _messageHubConnection.StartAsync();
+            @* if (_notificationHubConnection.State == HubConnectionState.Disconnected)
+                await _notificationHubConnection.StartAsync(); *@
+
+            Console.WriteLine($"adding chat user {_user.Id}");
 
             await _chatHubConnection.SendAsync("AddChatUser", _user.Id);
+            @* await _notificationHubConnection.SendAsync("ConnectUser", _user.Id); *@
             await _chatHubConnection.SendAsync("RetrieveChats", _user.Id);
             await _chatHubConnection.SendAsync("RetrieveInvitations", _user.Id);
         }
@@ -220,8 +233,13 @@
     public async ValueTask DisposeAsync()
     {
         if (_chatHubConnection.State == HubConnectionState.Connected)
+        {
+            await _chatHubConnection.SendAsync("RemoveChatUser", _user.Id);
             await _chatHubConnection.StopAsync();
+        }
         if (_messageHubConnection.State == HubConnectionState.Connected)
+        {
             await _messageHubConnection.StopAsync();
+        }
     }
 }

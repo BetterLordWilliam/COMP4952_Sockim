@@ -36,6 +36,7 @@ public class ChatHub : Hub
     public async Task AddChatUser(int id)
     {
         string userGroupName = $"user-{id}";
+        Console.WriteLine("REGISTERING USER GROUP " + userGroupName);
         await Groups.AddToGroupAsync(Context.ConnectionId, userGroupName);
     }
 
@@ -44,9 +45,9 @@ public class ChatHub : Hub
     /// </summary>
     /// <param name="chatUserDto"></param>
     /// <returns></returns>
-    public async Task RemoveChatUser(ChatUserDto chatUserDto)
+    public async Task RemoveChatUser(int chatUserId)
     {
-        string userGroupName = $"user-{chatUserDto.Id}";
+        string userGroupName = $"user-{chatUserId}";
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, userGroupName);
     }
 
@@ -527,6 +528,22 @@ public class ChatHub : Hub
                 Message = msg,
             });
         }
+    }
+
+#endregion
+
+#region:message notifs
+
+    public async Task NewChatMessage(ChatDto chat, ChatMessageDto message)
+    {
+        Console.WriteLine($"{string.Join(", ", chat.ChatMemberIds.ToArray())}");
+
+        List<Task> notifs = new List<Task>();
+        foreach (var userId in chat.ChatMemberIds)
+        {
+            notifs.Add(Clients.Group($"user-{userId}").SendAsync("NewChatMessage", message));
+        }
+        Task.WaitAll(notifs);
     }
 
 #endregion

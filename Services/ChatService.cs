@@ -232,17 +232,12 @@ public class ChatService
             Chat[] chats = await _chatDbContext.Chats
                 .Include(c => c.ChatOwner)
                 .Include(c => c.Invitations)
+                .Include(c => c.ChatUsers)
                 .Where(c => c.ChatUsers.Any(cu => cu.Id == userId))
                 .AsNoTracking()
                 .ToArrayAsync();
 
-            return chats.Select(c => new ChatDto()
-            {
-                Id = c.Id,
-                ChatName = c.ChatName,
-                ChatOwnerId = c.ChatOwnerId,
-                ChatOwnerEmail = c.ChatOwner.Email ?? string.Empty
-            }).ToArray();
+            return chats.Select(c => ConvertToDto(c)).ToArray();
         }
         catch (OperationCanceledException ex)
         {
@@ -449,6 +444,9 @@ public class ChatService
             ChatName = chat.ChatName,
             ChatOwnerId = chat.ChatOwnerId,
             ChatOwnerEmail = chat.ChatOwner?.Email ?? string.Empty,
+            ChatMemberIds = chat.ChatUsers
+                .Select(u => u.Id)
+                .ToList(),
             InvitedEmails = chat.ChatUsers
                 .Where(u => u.Id != chat.ChatOwnerId)
                 .Select(u => u.Email ?? string.Empty)
