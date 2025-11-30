@@ -1,0 +1,145 @@
+@using COMP4952_Sockim.Components.Elements
+@using COMP4952_Sockim.Data
+@using COMP4952_Sockim.Models
+@using Microsoft.AspNetCore.SignalR.Client
+@using System.ComponentModel.DataAnnotations
+
+@inject IJSRuntime JSRuntime
+
+<div class="message-list-wrapper" @ref="_messageListWrapper">
+    <ul class="message-list">
+        @if (User is not null && ChatMessages is not null)
+        {
+            @foreach (ChatMessageDto message in ChatMessages)
+            {
+                <li style="background-color: @GetMessageColor(message.ChatUserId)">
+                    <div class="message-wrapper">
+                        <div class="message-meta"><b>@message.SenderEmail</b>, <b>@message.MessageDateTime</b></div>
+                        @if (_editMessage && _editMessageId == message.Id)
+                        {
+                            <div class="">
+                                <textarea class="message-edit-input" rows="5" @bind="@_updatedMessage" />
+                                <div class="message-edit-options">
+                                    <button class="btn-regular" type="button"
+                                        @onclick="() => SaveMessageEdit(message, _updatedMessage)">
+                                        <img src="/images/Icons/check_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Save" />
+                                        Save
+                                    </button>
+                                    <button class="btn-danger" type="cancel" @onclick="() => CancelMessageEdit(message)">
+                                        <img src="/images/Icons/close_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Cancel" />
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="message-text">@message.MessageContent</p>
+                            @if (message.ChatUserId == User.Id)
+                            {
+                                <button class="btn-regular" type="button" disabled="@_editMessage"
+                                    @onclick="() => EditMesssage(message)">
+                                    <img src="/images/Icons/edit_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Edit" />
+                                    Edit
+                                </button>
+                                <Confirm Title="Delete Message" OnModalDone="@MessageDeleteCallback" @ref="_deleteMessageModal">
+                                </Confirm>
+                                <button class="btn-danger" type="button" @onclick="() => MessageDelete(message)">
+                                    <img src="/images/Icons/delete_forever_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Delete" />
+                                    Delete
+                                </button>
+                            }
+                        }
+                    </div>
+                </li>
+            }
+        }
+    </ul>
+</div>
+
+@code {
+    [Parameter]
+    public List<ChatMessageDto>? ChatMessages { get; set; }
+    [Parameter]
+    public ChatUser? User { get; set; }
+    [Parameter]
+    public HubConnection? MessageHubConnection { get; set; }
+    [Parameter]
+    public Dictionary<int, string>? MemberColors { get; set; }
+
+    private int _editMessageId = -1;
+    private bool _editMessage = false;
+    [StringLength(500, ErrorMessage = "Cannot exceed 500 chars")]
+    private string _updatedMessage = string.Empty;
+    private ChatMessageDto? _deleteMessage = null;
+    private ElementReference _messageListWrapper;
+    private Confirm? _deleteMessageModal;
+
+    private string GetMessageColor(int userId)
+    {
+        return MemberColors?.TryGetValue(userId, out string? color) == true ? color : "#6e8cfb14";
+    }
+
+    private void EditMesssage(ChatMessageDto message)
+    {
+        // switch the span into an input
+        // give the span the same content
+        // when the message is finished editing, send to db and update
+
+        _editMessage = true;
+        _updatedMessage = message.MessageContent;
+        _editMessageId = message.Id;
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void CancelMessageEdit(ChatMessageDto message)
+    {
+        _editMessage = false;
+        _editMessageId = -1;
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async void SaveMessageEdit(ChatMessageDto message, string _updatedMessage)
+    {
+        if (MessageHubConnection is null)
+        {
+            return;
+        }
+
+        _editMessage = false;
+        _editMessageId = -1;
+
+        message.MessageContent = _updatedMessage;
+
+        await MessageHubConnection.SendAsync("EditMessage", message);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void MessageDeleteCallback(bool status)
+    {
+        if (status && _deleteMessageModal is not null && _deleteMessage is not null)
+        {
+            await MessageHubConnection.SendAsync("DeleteMessage", _deleteMessage);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void MessageDelete(ChatMessageDto message)
+    {
+        if (_deleteMessageModal is not null)
+        {
+            _deleteMessage = message;
+            _deleteMessageModal.ShowModal();
+        }
+    }
+
+    private async Task ScrollToBottom()
+    {
+        if (_messageListWrapper.Id != null)
+        {
+            await JSRuntime.InvokeVoidAsync("scrollToElementBottom", _messageListWrapper);
+        }
+    }
+}

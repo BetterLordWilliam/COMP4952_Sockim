@@ -1,0 +1,34 @@
+@using COMP4952_Sockim.Models
+@using Microsoft.AspNetCore.SignalR.Client
+
+<div class="error-log">
+    @foreach (SockimError error in Errors)
+    {
+        <div class="error-log-item">
+            <p class="error-log-item-message">@error.Message</p>
+            <button class="btn-error-log" type="button" @onclick="() => RemoveLogItem(error)">X</button>
+        </div>
+
+        SetTimeout(error);
+    }
+</div>
+
+@code {
+    [Parameter]
+    public HubConnection? ChatHubConnection { get; set; }
+    [Parameter]
+    public List<SockimError> Errors { get; set; } = [];
+
+    private void RemoveLogItem(SockimError error)
+    {
+        Errors.Remove(error);
+        StateHasChanged();
+    }
+    
+    private async void SetTimeout(SockimError error)
+    {
+        await Task.Delay(2500);
+        Errors.Remove(error);
+        await InvokeAsync(StateHasChanged);
+    }
+}

@@ -1,0 +1,296 @@
+@using COMP4952_Sockim.Components.Account.Pages.Manage
+@using COMP4952_Sockim.Components.Elements
+@using COMP4952_Sockim.Data
+@using COMP4952_Sockim.Models
+@using COMP4952_Sockim.Services
+@using Microsoft.AspNetCore.SignalR.Client
+
+@inject IJSRuntime JSRuntime
+@inject UserPreferenceService UserPreferenceService
+
+<div class="modal">
+    <div class="modal-content members-panel">
+        @if (_editChatName)
+        {
+            <div class="">
+                <div class="rename-chat-controls">
+                    <h3><input type="text" @bind-value="@_updatedChatName" /></h3>
+                    <div class="rename-chat-options">
+                        <button class="btn-regular" type="button" @onclick="SaveRenameChat">Save</button>
+                        <button class="btn-danger" type="button" @onclick="CancelRenameChat">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="rename-chat-controls">
+                <h3 class="chat-name">@ChatDto?.ChatName</h3>
+                <button class="btn-regular rename-button" type="button" @onclick="@RenameChat">
+                    <img src="/images/Icons/edit_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Edit" />
+                    Rename
+                </button>
+            </div>
+        }
+        <hr />
+        <h3>Chat Members</h3>
+        <div class="">
+            <div class="invite-controls">
+                <input class="invite-email-input" type="email" @bind="_inviteEmail"
+                    placeholder="Enter email address of new member" />
+                <button type="button" class="btn-regular invite-button" @onclick="InviteMember">
+                    <img src="/images/Icons/person_add_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Invite" />
+                    Invite
+                </button>
+            </div>
+            @if (!string.IsNullOrEmpty(_inviteStatus))
+            {
+                <p class="invite-status">@_inviteStatus</p>
+            }
+        </div>
+        @if (ChatMembers.Count > 0)
+        {
+            <ul class="members-list">
+                @foreach (var member in ChatMembers)
+                {
+                    <li class="member-item">
+                        <span class="member-email">@member.Email</span>
+                        @if (_isOwner && member.Id != User.Id)
+                        {
+                            <button type="button" class="btn-regular" @onclick="() => PromoteToOwner(member.Id)"
+                                title="Promote to owner">
+                                <img src="/images/Icons/person_edit_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Promote" />
+                                Promote
+                            </button>
+                        }
+                        @if (member.Id != User.Id)
+                        {
+                            <Confirm OnModalDone="@RemoveConfirmCallback" Title="Remove Member" @ref="_confirmRemove" />
+                            <button type="button" class="btn-danger" @onclick="() => RemoveMember(member.Id, _confirmRemove!)"
+                                title="Remove member">
+                                <img src="/images/Icons/delete_forever_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Remove" />
+                                Remove
+                            </button>
+                        }
+                    </li>
+                }
+            </ul>
+
+        }
+        <h3>Message Colors</h3>
+        <div class="color-settings">
+            <div>Customize message bubble colors for each member:</div>
+            <div class="color-settings-list">
+                @if (ChatMembers is not null)
+                {
+                    @foreach (var member in ChatMembers)
+                    {
+                        <div class="member-color-setting">
+                            <span class="member-name">@member.Email</span>
+                            <input type="color" value="@GetMemberColor(member.Id)"
+                                @onchange="e => UpdateMemberColor(member.Id, e.Value?.ToString())"
+                                title="Choose color for @member.Email's messages" />
+                            @if (member.Id == User?.Id)
+                            {
+                                <span class="color-label">(Your messages)</span>
+                            }
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+        <Confirm OnModalDone="@RemoveConfirmCallback" Title="Leave chat" @ref="_confirmLeave" />
+        <button class="btn-danger" type="button" @onclick="() => RemoveMember(User.Id, _confirmLeave!)">
+            <img src="/images/Icons/arrow_back_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Leave" />
+            Leave Chat
+        </button>
+        <button class="btn-danger" type="button" @onclick="@CloseChatOptions">
+            <img src="/images/Icons/close_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Close" />
+            Close
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public required List<ChatUserDto> ChatMembers { get; set; }
+    [Parameter]
+    public required ChatDto ChatDto { get; set; }
+    [Parameter]
+    public required ChatUser User { get; set; }
+    [Parameter]
+    public HubConnection? ChatHubConnection { get; set; }
+    [Parameter]
+    public EventCallback CloseChatOptions { get; set; }
+    [Parameter]
+    public Dictionary<int, string>? MemberColors { get; set; }
+
+    private Confirm? _confirmRemove;
+    private Confirm? _confirmLeave;
+    private bool _isOwner => User?.Id == ChatDto?.ChatOwnerId;
+    private bool _editChatName = false;
+    private string _inviteEmail = string.Empty;
+    private string _inviteStatus = string.Empty;
+    private string _updatedChatName = string.Empty;
+    private int? _memberToRemove;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (MemberColors != null && ChatMembers != null && User != null && ChatDto != null)
+        {
+            var savedPreferences = await UserPreferenceService.GetChatUserPreferencesAsync(User.Id, ChatDto.Id);
+
+            foreach (var member in ChatMembers)
+            {
+                if (savedPreferences.TryGetValue(member.Id, out var savedColor))
+                {
+                    MemberColors[member.Id] = savedColor;
+                }
+                else
+                {
+                    MemberColors.TryAdd(member.Id, "#6e8cfb14");
+                }
+            }
+        }
+    }
+
+    /*
+    protected override void OnInitialized()
+    {
+    if (MemberColors != null && ChatMembers != null)
+    {
+    foreach (var member in ChatMembers)
+    {
+    MemberColors.TryAdd(member.Id, "#6e8cfb14");
+    }
+    }
+    }
+    */
+
+    private string GetMemberColor(int memberId)
+    {
+        return MemberColors?.TryGetValue(memberId, out string? color) == true ? color : "#6e8cfb14";
+    }
+
+    private async Task UpdateMemberColor(int memberId, string? newColor)
+    {
+        if (string.IsNullOrEmpty(newColor) || MemberColors == null || User == null || ChatDto == null)
+        {
+            return;
+        }
+
+        MemberColors[memberId] = newColor;
+
+        await UserPreferenceService.SaveUserPreferencesAsync(User.Id, ChatDto.Id, memberId, newColor);
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void RenameChat()
+    {
+        _editChatName = true;
+        _updatedChatName = ChatDto?.ChatName ?? string.Empty;
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async void SaveRenameChat()
+    {
+        _editChatName = false;
+
+        if (ChatHubConnection is null || ChatDto is null)
+            return;
+
+        ChatDto.ChatName = _updatedChatName;
+
+        await ChatHubConnection.SendAsync("RenameChat", ChatDto);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void CancelRenameChat()
+    {
+        _editChatName = false;
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Invite a user to the chat by email.
+    /// Calls ChatHub to create the invitation.
+    /// </summary>
+    private async Task InviteMember()
+    {
+        if (string.IsNullOrWhiteSpace(_inviteEmail) || ChatHubConnection is null)
+        {
+            _inviteStatus = "Please enter a valid email address";
+            return;
+        }
+
+        if (ChatDto is null || User is null)
+        {
+            Console.WriteLine("Invalid state");
+            return;
+        }
+
+        try
+        {
+            await ChatHubConnection.SendAsync("InviteUserToChat", ChatDto.Id, User.Id, _inviteEmail);
+        }
+        catch (Exception ex)
+        {
+            _inviteStatus = $"Error: {ex.Message}";
+            Console.WriteLine($"Error inviting member: {ex.Message}");
+        }
+    }
+
+    private async Task RemoveConfirmCallback(bool result)
+    {
+        if (result && _memberToRemove is not null && ChatHubConnection is not null)
+        {
+            try
+            {
+                await ChatHubConnection.SendAsync("RemoveUserFromChat", ChatDto.Id, _memberToRemove);
+                _memberToRemove = null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error removing member: {ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Remove a member from the chat.
+    /// Only the chat owner can remove members.
+    /// Calls ChatHub to remove the user.
+    /// </summary>
+    private async Task RemoveMember(int memberId, Confirm confirm)
+    {
+        if (ChatHubConnection is null)
+        {
+            Console.WriteLine("ChatHub connection not available");
+            return;
+        }
+
+        if (ChatDto is null || User is null)
+        {
+            Console.WriteLine("Invalid state");
+            return;
+        }
+
+        // bool confirm = await JSRuntime.InvokeAsync<bool>("confirm", "are you sure?");
+        _memberToRemove = memberId;
+        confirm?.ShowModal();
+    }
+
+    /// <summary>
+    /// Promote another chatter to be the owner
+    /// </summary>
+    private async Task PromoteToOwner(int memberId)
+    {
+        if (ChatHubConnection is not null && ChatDto is not null)
+        {
+            await ChatHubConnection.SendAsync("PromoteToChatOwner", ChatDto.Id, memberId);
+        }
+    }
+}

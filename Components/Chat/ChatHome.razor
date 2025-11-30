@@ -8,56 +8,44 @@
 @using System.Numerics
 
 @rendermode InteractiveServer
+@implements IAsyncDisposable
 @inject NavigationManager NavManager
 @inject UserManager<ChatUser> UserManager
 @inject ChatService ChatService
 
-@* <h1>INFO</h1>
-<ul>
-    <li>Chat: @IsChatConnected</li>
-    <li>Invitation: @IsInvitationConnected</li>
-    <li>Message: @IsMessageConnected</li>
-</ul> *@
-
-
 <div class="app-layout">
-        @* <button class="btn-remove" style="margin-bottom:2rem;" @onclick="CloseChat">Close</button> *@
-    <div class="main-content">
-        <div class="header">
-            <div>Welcome</div>
-            <div>@(_user?.Email ?? "Guest")</div>
-        </div>
-        <div class="chat-list-header">
-            <ChatInvitations ChatHubConnection="@_chatHubConnection" Invitations="@_invitations" User="@_user" />
-        </div>
-        <div class="section">
-            @if(!_chatOpen)
+    @if (!_loading)
+    {
+        <ChatInfoMessages ChatHubConnection="@_chatHubConnection" InfoMessages="@_infoMessages"></ChatInfoMessages>
+        <ChatErrors ChatHubConnection="@_chatHubConnection" Errors="@_errors"></ChatErrors>
+        <div class="main-content">
+            <div class="main-content-header">
+                <ChatInvitations ChatHubConnection="@_chatHubConnection" Invitations="@_invitations" User="@_user"
+                    @ref="@_chatInvitations" />
+            </div>
+            <hr />
+            @if (!_chatOpen)
             {
-                <div class="message-list-header">
-                    <button class="btn-remove" @onclick="OnAddChat">Create Chat</button>
+                <div class="chat-list-header">
+                    <button class="btn-regular" @onclick="OnAddChat">Create Chat</button>
                 </div>
-                @if(_user is not null && _chatHubConnection is not null && _showCreateChat)
+                @if (_user is not null && _chatHubConnection is not null && _showCreateChat)
                 {
                     <ChatCreateForm ChatHubConnection=_chatHubConnection User=_user OnClose="CloseAddChat" />
                 }
-                <div class="chat-list">
-                    <ChatList   ChatOpened="@OpenChat"
-                                ChatHubConnection="@_chatHubConnection"
-                                Chats="@_chats"
-                                User="@_user" />
-                </div>
+                <ChatList ChatOpened="@OpenChat" ChatHubConnection="@_chatHubConnection" Chats="@_chats" User="@_user" />
             }
             else
             {
-                <ChatForm   MessageHubConnection="@_messageHubConnection"
-                            ChatHubConnection="@_chatHubConnection"
-                            CloseChat="@CloseChat"
-                            ChatDto="@_chat"
-                            Messages="@_messages"
-                            User="@_user" />
+                <ChatForm MessageHubConnection="@_messageHubConnection" ChatHubConnection="@_chatHubConnection"
+                    CloseChat="@CloseChat" ChatDto="@_chat" User="@_user" />
             }
         </div>
-    </div>
+    }
+    else
+    {
+        <p>... loading ...</p>
+    }
 </div>
 
 @code {
@@ -71,20 +59,24 @@
 
     private List<ChatDto> _chats = [];
     private List<ChatInvitationDto> _invitations = [];
-    private List<ChatMessageDto> _messages = [];
+    private List<SockimError> _errors = [];
+    private List<SockimMessage> _infoMessages = [];
 
     private HubConnection? _chatHubConnection;
-    private HubConnection? _invitationHubConnection;
     private HubConnection? _messageHubConnection;
+    private HubConnection? _notificationHubConnection;
 
+    private bool _loading = true;
     private bool _showCreateChat = false;
     private bool _chatOpen = false;
     private bool IsChatConnected => _chatHubConnection?.State == HubConnectionState.Connected;
-    private bool IsInvitationConnected => _invitationHubConnection?.State == HubConnectionState.Connected;
     private bool IsMessageConnected => _messageHubConnection?.State == HubConnectionState.Connected;
+
+    public required ChatInvitations _chatInvitations;
 
     protected override async Task OnInitializedAsync()
     {
+        _loading = true;
         if (_authState is not null)
         {
             var authState = await _authState;
@@ -96,13 +88,17 @@
             }
 
             _chatHubConnection = new HubConnectionBuilder()
-                .WithUrl(NavManager.ToAbsoluteUri("/chathub"))
-                .WithAutomaticReconnect()
-                .Build();
+            .WithUrl(NavManager.ToAbsoluteUri("/chathub"))
+            .WithAutomaticReconnect()
+            .Build();
 
             _chatHubConnection.On<ChatDto>("ChatCreated", (ChatDto newChat) =>
             {
                 _chats.Add(newChat);
+                _infoMessages.Add(new SockimMessage()
+                {
+                    Message = "new chat created"
+                });
                 InvokeAsync(StateHasChanged);
             });
 
@@ -112,26 +108,82 @@
                 InvokeAsync(StateHasChanged);
             });
 
-            _chatHubConnection.On<ChatDto>("RemovedFromChat", (ChatDto chat) => {
+            _chatHubConnection.On<ChatMessageDto>("NewChatMessage", (newMessage) =>
+            {
+                int chatIdx = _chats.FindIndex(c => c.Id == newMessage.ChatId);
+                try
+                {
+                    _chats[chatIdx].Unread = true;
+                    _chats[chatIdx].MostRecent = newMessage;
+                    InvokeAsync(StateHasChanged);
+                }
+                catch (IndexOutOfRangeException ex)
+                {
+                    _errors.Add(new SockimError() { Message = "Internal Error: chat update failed." });
+                }
+            });
+
+            _chatHubConnection.On<ChatDto>("RemovedFromChat", (ChatDto chat) =>
+            {
                 if (_chatOpen)
                     InvokeAsync(CloseChat);
                 _chats.Remove(chat);
+                _infoMessages.Add(new SockimMessage()
+                {
+                    Message = "removed from chat"
+                });
                 InvokeAsync(StateHasChanged);
             });
 
-            _chatHubConnection.On<ChatInvitationDto>("IncomingInvitation", (ChatInvitationDto) => {
+            _chatHubConnection.On<ChatDto, ChatUserDto>("MemberRemoved", (ChatDto chat, ChatUserDto user) =>
+            {
+                _infoMessages.Add(new SockimMessage()
+                {
+                    Message = $"{user.Email} removed from chat {chat.ChatName}"
+                });
+                InvokeAsync(StateHasChanged);
+            });
+
+            _chatHubConnection.On<ChatDto>("ChatUpdated", (ChatDto chat) =>
+            {
+                int index = _chats.FindIndex(c => c.Id == chat.Id);
+                try
+                {
+                    _chats[index].ChatName = chat.ChatName;
+                    InvokeAsync(StateHasChanged);
+                }
+                catch (IndexOutOfRangeException ex)
+                {
+                    _errors.Add(new SockimError() { Message = "Internal error: chat update failed." });
+                }
+            });
+
+            _chatHubConnection.On<ChatInvitationDto>("IncomingInvitation", (ChatInvitationDto) =>
+            {
                 _invitations.Add(ChatInvitationDto);
+                _chatInvitations.ShowNotificationBadge();
                 InvokeAsync(StateHasChanged);
             });
 
-            _chatHubConnection.On<ChatDto>("InvitationAccepted", (ChatDto newChat) => {
+            _chatHubConnection.On<ChatDto>("InvitationAccepted", (ChatDto newChat) =>
+            {
                 _chats.Add(newChat);
+                _infoMessages.Add(new SockimMessage()
+                {
+                    Message = "chat invitation accepted"
+                });
                 InvokeAsync(StateHasChanged);
             });
 
             _chatHubConnection.On<ChatInvitationDto[]>("RetrievedInvitations", (ChatInvitationDto[] invitations) =>
             {
                 _invitations = invitations.ToList();
+                InvokeAsync(StateHasChanged);
+            });
+
+            _chatHubConnection.On<SockimMessage>("InvitationSent", (SockimMessage message) =>
+            {
+                _infoMessages.Add(message);
                 InvokeAsync(StateHasChanged);
             });
 
@@ -142,19 +194,49 @@
                 InvokeAsync(StateHasChanged);
             });
 
+            _chatHubConnection.On<SockimError>("Error", (SockimError error) =>
+            {
+                _errors.Add(error);
+                InvokeAsync(StateHasChanged);
+            });
+
             _messageHubConnection = new HubConnectionBuilder()
-                .WithUrl(NavManager.ToAbsoluteUri("/messagehub"))
-                .WithAutomaticReconnect()
-                .Build();
+            .WithUrl(NavManager.ToAbsoluteUri("/messagehub"))
+            .WithAutomaticReconnect()
+            .Build();
+
+            _messageHubConnection.On<SockimError>("Error", (SockimError error) =>
+            {
+                _errors.Add(error);
+                InvokeAsync(StateHasChanged);
+            });
+
+            _messageHubConnection.On<SockimMessage>("MessageDeletedSuccess", (SockimMessage message) =>
+            {
+                _infoMessages.Add(message);
+                InvokeAsync(StateHasChanged);
+            });
+
+            _notificationHubConnection = new HubConnectionBuilder()
+            .WithUrl(NavManager.ToAbsoluteUri("/notifhub"))
+            .WithAutomaticReconnect()
+            .Build();
 
             if (_chatHubConnection.State == HubConnectionState.Disconnected)
                 await _chatHubConnection.StartAsync();
             if (_messageHubConnection.State == HubConnectionState.Disconnected)
                 await _messageHubConnection.StartAsync();
+            @* if (_notificationHubConnection.State == HubConnectionState.Disconnected)
+                await _notificationHubConnection.StartAsync(); *@
+
+            Console.WriteLine($"adding chat user {_user.Id}");
 
             await _chatHubConnection.SendAsync("AddChatUser", _user.Id);
+            @* await _notificationHubConnection.SendAsync("ConnectUser", _user.Id); *@
             await _chatHubConnection.SendAsync("RetrieveChats", _user.Id);
             await _chatHubConnection.SendAsync("RetrieveInvitations", _user.Id);
+
+            _loading = false;
         }
     }
 
@@ -179,5 +261,41 @@
     {
         _chatOpen = false;
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Disconnect from the server if the component is disposed.
+    /// </summary>
+    public async ValueTask DisposeAsync()
+    {
+        if (_chatHubConnection is not null)
+        {
+            if (_chatHubConnection.State == HubConnectionState.Connected)
+                await _chatHubConnection.SendAsync("RemoveChatUser", _user.Id);
+
+            _chatHubConnection.Remove("ChatCreated");
+            _chatHubConnection.Remove("RetrievedChats");
+            _chatHubConnection.Remove("RemovedFromChat");
+            _chatHubConnection.Remove("MemberRemoved");
+            _chatHubConnection.Remove("ChatUpdated");
+            _chatHubConnection.Remove("IncomingInvitation");
+            _chatHubConnection.Remove("InvitationAccepted");
+            _chatHubConnection.Remove("RetrievedInvitations");
+            _chatHubConnection.Remove("InvitationSent");
+            _chatHubConnection.Remove("InvitationRejected");
+            _chatHubConnection.Remove("Error");
+            _chatHubConnection.Remove("NewChatMessage");
+
+            if (_chatHubConnection.State == HubConnectionState.Connected)
+                await _chatHubConnection.StopAsync();
+        }
+        if (_messageHubConnection is not null)
+        {
+            _messageHubConnection.Remove("Error");
+            _messageHubConnection.Remove("MessageDeletedSuccess");
+
+            if (_messageHubConnection.State == HubConnectionState.Connected)
+                await _messageHubConnection.StopAsync();
+        }
     }
 }

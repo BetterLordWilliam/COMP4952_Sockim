@@ -1,0 +1,125 @@
+﻿@using COMP4952_Sockim.Models
+@using COMP4952_Sockim.Data
+@using COMP4952_Sockim.Components.Elements
+@using Microsoft.AspNetCore.SignalR.Client
+
+@implements IAsyncDisposable
+
+<div class="modal">
+    <div class="modal-content">
+        <h3>Message Management</h3>
+        <div>Manage your messages.</div>
+        <ul class="message-list">
+            @foreach (var chatMessage in ChatMessages)
+            {
+                @if (chatMessage.ChatUserId == User.Id)
+                {
+                    <li>
+                        <input type="checkbox" @bind="chatMessage.IsSelected" />
+                        <div class="chat-message">@chatMessage.MessageContent</div>
+                    </li>
+                }
+            }
+        </ul>
+        <div class="message-controls">
+            <button class="btn-regular btn-deselect-all"
+                    @onclick="@DeselectAll">
+                Deselect All
+            </button>
+            <button class="btn-regular btn-select-all"
+                    @onclick="@SelectAll">
+                Select All
+            </button>
+            <Confirm    Title="Delete selected Chat Messages?"
+                        OnModalDone="@DeleteSelectedConfirmedResult"
+                        @ref="@_deleteSelected"></Confirm>
+            <button class="btn-danger"
+                    @onclick="@(() => { if (_deleteSelected is not null) { _deleteSelected.ShowModal(); } })">
+                Delete Selected Messages
+            </button>
+            <Confirm    Title="Delete all Chat Messages?"
+                        OnModalDone="@DeleteAllConfirmedResult"
+                        @ref="@_deleteAll"></Confirm>
+            <button class="btn-danger"
+                    @onclick="@(() => { if (_deleteAll is not null) { _deleteAll.ShowModal(); } })">
+                Delete All Messages
+            </button>
+        </div>
+        <hr />
+        <button class="btn-danger" type="button" @onclick="@CloseChatMessageOptions">
+            <img src="/images/Icons/close_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Close" />
+            Close
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public required ChatUser User { get; set; }
+    [Parameter]
+    public required List<ChatMessageDto> ChatMessages { get; set; }
+    [Parameter]
+    public required EventCallback CloseChatMessageOptions { get; set; }
+    [Parameter]
+    public required HubConnection MessageHubConnection { get; set; }
+
+    private Confirm? _deleteSelected { get; set; }
+    private Confirm? _deleteAll { get; set; }
+
+    private void SelectAll()
+    {
+        foreach (var chatMessage in ChatMessages)
+        {
+            chatMessage.IsSelected = true;
+        }
+    }
+
+    private void DeselectAll()
+    {
+        foreach (var chatMessage in ChatMessages)
+        {
+            chatMessage.IsSelected = false;
+        }
+    }
+
+    public async void DeleteSelectedConfirmedResult(bool result)
+    {
+        if (result && _deleteSelected is not null)
+        {
+            List<Task> deleteMessages = new ();
+            foreach (var chatMessage in ChatMessages)
+            {
+                if (chatMessage.ChatUserId == User.Id
+                    && chatMessage.IsSelected)
+                {
+                    deleteMessages.Add(MessageHubConnection.SendAsync("DeleteMessage", chatMessage));
+                }
+            }
+            await Task.WhenAll(deleteMessages.ToArray());
+        }
+    }
+
+    public async void DeleteAllConfirmedResult(bool result)
+    {
+        if (result && _deleteAll is not null)
+        {
+            List<Task> deleteMessages = new ();
+            foreach (var chatMessage in ChatMessages)
+            {
+                if (chatMessage.ChatUserId == User.Id)
+                {
+                    deleteMessages.Add(MessageHubConnection.SendAsync("DeleteMessage", chatMessage));
+                }
+            }
+            await Task.WhenAll(deleteMessages.ToArray());
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        foreach (var chatMessage in ChatMessages)
+        {
+            chatMessage.IsSelected = false;
+        }
+    }
+}

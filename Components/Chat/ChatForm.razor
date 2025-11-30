@@ -1,4 +1,5 @@
-﻿@using COMP4952_Sockim.Hubs
+@using COMP4952_Sockim.Components.Pages
+@using COMP4952_Sockim.Hubs
 @using COMP4952_Sockim.Services
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Identity
@@ -7,6 +8,8 @@
 @using Microsoft.Build.Framework
 @using COMP4952_Sockim.Data
 @using COMP4952_Sockim.Models
+
+@inject UserPreferenceService UserPreferenceService
 @using System.Security.Claims
 
 @rendermode InteractiveServer
@@ -17,77 +20,64 @@
 @inject ChatUserService ChatUserService
 @inject ChatService ChatService
 
-<button type="button" class="btn-remove" @onclick="CloseChat">Close</button>
-<button type="button" class="btn-remove" @onclick="@OpenChatOptions">Chat Options</button>
 @if(_showChatOptions) {
-    <div class="modal">
-        <div class="modal-content members-panel">
-            <h3>Members</h3>
-            @if (_chatMembers != null && _chatMembers.Count > 0)
-            {
-                <ul class="members-list">
-                    @foreach (var member in _chatMembers)
-                    {
-                        <li class="member-item">
-                            <span class="member-email">@member.Email</span>
-                            @if (User?.Id == ChatDto.ChatOwnerId && member.Id != ChatDto.ChatOwnerId)
-                            {
-                                <button type="button" class="btn-remove" @onclick="() => RemoveMember(member.Id)" title="Remove member">Remove</button>
-                            }
-                        </li>
-                    }
-                </ul>
-            }
-            <hr />
-            <div class="invite-section">
-                <h4>Invite Member</h4>
-                <input type="email" @bind="_inviteEmail" placeholder="Enter email address" />
-                <button type="button" class="invite-btn" @onclick="InviteMember">Invite</button>
-                <button type="button" class="btn-remove" @onclick="() => RemoveMember(User?.Id ?? 0)" disabled="@(User == null || _isOwner)">Leave</button>
-                @if (!string.IsNullOrEmpty(_inviteStatus))
-                {
-                    <p class="invite-status">@_inviteStatus</p>
-                }
+    <ChatFormOptions    ChatMembers="@_chatMembers"
+                        ChatDto="@ChatDto"
+                        User="@User"
+                        ChatHubConnection="@ChatHubConnection"
+                        MemberColors="@_memberColors"
+                        CloseChatOptions="@CloseChatOptions"></ChatFormOptions>
+}
+
+@if(_showChatMessageOptions) {
+    <ChatFormMessageOptions 
+                        ChatMessages="@_messages"
+                        User="@User"
+                        MessageHubConnection="@MessageHubConnection"
+                        CloseChatMessageOptions="@CloseChatMessageOptions"/>
+}
+
+<div class="chat-header">
+    <div class="chat-header-info">
+        @ChatDto.ChatName
+        @if (User.Id == ChatDto.ChatOwnerId) {
+            <div class="owner-controls">
+                You are the owner
             </div>
-            <button class="btn-remove" type="button" @onclick="@CloseChatOptions">Close</button>
+        }
+    </div>
+    <div class="chat-header-controls">
+        <button type="button" class="btn-danger" @onclick="@CloseChatPage">
+            <img src="/images/Icons/close_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Close" />
+            Close
+        </button>
+        <button type="button" class="btn-regular" @onclick="@OpenChatOptions">
+            <img src="/images/Icons/group_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Options" />
+            Chat Options
+        </button>
+        <button type="button" class="btn-regular" @onclick="@OpenChatMessageOptions">
+            <img src="/images/Icons/manage_history_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Message Options" />
+            Manage Chat Messages
+        </button>
+    </div>
+</div>
+<div class="chat-content">
+    <div class="chat-message-list" @ref="_chatMessageList">
+        <ChatMessageList    ChatMessages="@_messages"
+                            User="@User"
+                            MemberColors="@_memberColors"
+                            MessageHubConnection="@MessageHubConnection"></ChatMessageList>
+    </div>
+    <div class="chat-input">
+        <label for="message-input">Message:</label>
+        <div class="chat-input-controls">
+            <textarea id="message-input" rows="1" @bind="_message" class="message-input" />
+            <button class="btn-regular" @onclick="Send">
+                <img src="/images/Icons/arrow_upward_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Send" />
+                Send
+            </button>
         </div>
     </div>
-}
-<div class="main-content chat-main-content">
-    <section class="section chat-section">
-        <div class="chat-header">
-            <h2>@ChatDto.ChatName</h2>
-            @if (User?.Id == ChatDto.ChatOwnerId)
-            {
-                <div class="owner-controls">
-                    <p><em>You are the chat owner</em></p>
-                </div>
-            }
-        </div>
-        <div class="chat-content">
-            <div class="message-list-wrapper" @ref="_messageListWrapper">
-                <ul class="message-list">
-                    @if (Messages is not null)
-                    {
-                        @foreach (ChatMessageDto message in _messages)
-                        {
-                            <li>
-                                <span class="message-meta"><b>@message.SenderEmail</b>, <b>@message.MessageDateTime</b></span>
-                                <p class="message-text">@message.MessageContent</p>
-                            </li>
-                        }
-                    }
-                </ul>
-            </div>
-            <div class="input-controls">
-                <div class="form-group">
-                    <label for="message-input">Message:</label>
-                    <input id="message-input" @bind="_message" class="message-input" />
-                </div>
-                <button class="send-btn" @onclick="Send">Send</button>
-            </div>
-        </div>
-    </section>
 </div>
 
 @code {
@@ -96,27 +86,26 @@
     [Parameter]
     public ChatUser User { get; set; } = null!;
     [Parameter]
-    public HubConnection MessageHubConnection { get; set; } = null!;
+    public required HubConnection MessageHubConnection { get; set; }
     [Parameter]
-    public HubConnection? ChatHubConnection { get; set; }
-    [Parameter]
-    public List<ChatMessageDto>? Messages { get; set; }
+    public required HubConnection ChatHubConnection { get; set; }
     [Parameter]
     public bool Disabled { get; set; } = true;
     [Parameter]
     public EventCallback CloseChat { get; set; }
 
-    private ElementReference _messageListWrapper;
+    private ElementReference? _chatMessageList;
     private List<ChatMessageDto> _messages = [];
     private List<ChatUserDto> _chatMembers = [];
     private string _message = string.Empty;
-    private string _inviteEmail = string.Empty;
-    private string _inviteStatus = string.Empty;
-    private bool _isOwner => User.Id == ChatDto.ChatOwnerId;
     private bool _showChatOptions = false;
+    private bool _showChatMessageOptions = false;
+    private Dictionary<int, string> _memberColors = new();
 
     protected override async Task OnInitializedAsync()
     {
+        _memberColors = await UserPreferenceService.GetChatUserPreferencesAsync(User.Id, ChatDto.Id);
+        
         if (ChatHubConnection is not null)
         {
             ChatHubConnection.On<ChatUserDto>("MemberJoined", (ChatUserDto user) => {
@@ -151,21 +140,32 @@
             MessageHubConnection.On<ChatUserDto>("MemberRemoved", (ChatUserDto user) => {
             }); *@
 
+            MessageHubConnection.On<ChatMessageDto>("MessageUpdated", (ChatMessageDto message) => {
+                int index = _messages.IndexOf(message);
+                _messages[index] = message;
+                InvokeAsync(StateHasChanged);
+            });
+
+            MessageHubConnection.On<ChatMessageDto>("MessageDeleted", (ChatMessageDto message) => {
+                _messages.Remove(message);
+                InvokeAsync(StateHasChanged);
+            });
+
             MessageHubConnection.On<ChatMessageDto>("ReceiveMessage", (ChatMessageDto message) =>
             {
                 _messages.Add(message);
                 InvokeAsync(StateHasChanged);
+                InvokeAsync(ScrollToBottom);
             });
 
-            MessageHubConnection.On<ChatMessageDto[]>("RetrievedMessages", (ChatMessageDto[] messages) =>
-            {
+            MessageHubConnection.On<ChatMessageDto[]>("RetrievedMessages", (ChatMessageDto[] messages) => {
                 _messages = messages.ToList();
                 InvokeAsync(StateHasChanged);
+                InvokeAsync(ScrollToBottom);
             });
 
             await MessageHubConnection.SendAsync("JoinChat", ChatDto.Id, User.Id);
             await MessageHubConnection.SendAsync("GetChatHistory", ChatDto.Id);
-
         }
     }
 
@@ -179,11 +179,27 @@
         _showChatOptions = false;
     }
 
+    private void OpenChatMessageOptions()
+    {
+        _showChatMessageOptions = true;
+    }
+
+    private void CloseChatMessageOptions()
+    {
+        _showChatMessageOptions = false;
+    }
+
+    private async Task CloseChatPage()
+    {
+        ChatDto.Unread = false;
+        await CloseChat.InvokeAsync();
+    }
+
     private async Task ScrollToBottom()
     {
-        if (_messageListWrapper.Id != null)
+        if (_chatMessageList is not null)
         {
-            await JSRuntime.InvokeVoidAsync("scrollToElementBottom", _messageListWrapper);
+            await JSRuntime.InvokeVoidAsync("scrollToElementBottom", _chatMessageList);
         }
     }
 
@@ -205,9 +221,18 @@
 
         try
         {
-            if (MessageHubConnection is not null)
+            if (MessageHubConnection is not null && ChatHubConnection is not null)
             {
                 await MessageHubConnection.SendAsync("SendMessage", ChatDto.Id, newMessage);
+                await ChatHubConnection.SendAsync("NewChatMessage", ChatDto, newMessage);
+
+                @* List<Task> notifs = new ();
+                foreach(var client in ChatDto.ChatMemberIds)
+                {
+                    notifs.Add(NotificationHubConnection.SendAsync("SendMessage", ChatDto.Id, newMessage));
+                }
+                Task.WaitAll(notifs.ToArray()); *@
+
                 await ScrollToBottom();
             }
             _message = string.Empty;
@@ -218,61 +243,26 @@
         }
     }
 
-    /// <summary>
-    /// Invite a user to the chat by email.
-    /// Calls ChatHub to create the invitation.
-    /// </summary>
-    private async Task InviteMember()
-    {
-        if (string.IsNullOrWhiteSpace(_inviteEmail) || ChatHubConnection is null)
-        {
-            _inviteStatus = "Please enter a valid email address";
-            return;
-        }
-
-        try
-        {
-            await ChatHubConnection.SendAsync("InviteUserToChat", ChatDto.Id, User.Id, _inviteEmail);
-        }
-        catch (Exception ex)
-        {
-            _inviteStatus = $"Error: {ex.Message}";
-            Console.WriteLine($"Error inviting member: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Remove a member from the chat.
-    /// Only the chat owner can remove members.
-    /// Calls ChatHub to remove the user.
-    /// </summary>
-    private async Task RemoveMember(int memberId)
-    {
-        if (ChatHubConnection is null)
-        {
-            Console.WriteLine("ChatHub connection not available");
-            return;
-        }
-
-        try
-        {
-            await ChatHubConnection.SendAsync("RemoveUserFromChat", ChatDto.Id, User.Id, memberId);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error removing member: {ex.Message}");
-        }
-    }
-
     public async ValueTask DisposeAsync()
     {
         if (ChatHubConnection is not null)
         {
-            await ChatHubConnection.SendAsync("DisconnectToChatGroup", ChatDto.Id);
+            ChatHubConnection.Remove("MemberJoined");
+            ChatHubConnection.Remove("MemberRemoved");
+            ChatHubConnection.Remove("RetrievedUsers");
+
+            if (ChatHubConnection.State == HubConnectionState.Connected)
+                await ChatHubConnection.SendAsync("DisconnectToChatGroup", ChatDto.Id);
         }
         if (MessageHubConnection is not null)
         {
-            await MessageHubConnection.SendAsync("LeaveChat", ChatDto.Id, User.Id);
+            MessageHubConnection.Remove("MessageUpdated");
+            MessageHubConnection.Remove("MessageDeleted");
+            MessageHubConnection.Remove("ReceiveMessage");
+            MessageHubConnection.Remove("RetrievedMessages");
+
+            if (MessageHubConnection.State == HubConnectionState.Connected)
+                await MessageHubConnection.SendAsync("LeaveChat", ChatDto.Id, User.Id);
         }
     }
 }

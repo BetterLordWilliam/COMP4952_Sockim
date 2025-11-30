@@ -1,0 +1,37 @@
+@using COMP4952_Sockim.Models
+@using Microsoft.AspNetCore.SignalR.Client
+
+<div class="info-message-log">
+    @foreach(SockimMessage message in InfoMessages) {
+        <div class="info-message-item">
+            <div class="info-message-content">
+                @message.Message
+            </div>
+            <div class="info-message-controls">
+                <button class="btn-info-message-close" type="button" @onclick="() => RemoveMessage(message)">X</button>
+            </div>
+        </div>
+
+        SetTimeout(message);
+    }
+</div>
+
+@code {
+    [Parameter]
+    public required HubConnection ChatHubConnection { get; set; }
+    [Parameter]
+    public required List<SockimMessage> InfoMessages { get; set; }
+
+    private void RemoveMessage(SockimMessage message)
+    {
+        InfoMessages.Remove(message);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async void SetTimeout(SockimMessage message)
+    {
+        await Task.Delay(2000);
+        InfoMessages.Remove(message);
+        await InvokeAsync(StateHasChanged);
+    }
+}

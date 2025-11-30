@@ -1,15 +1,14 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 @inject AuthenticationStateProvider ASP
 
 <div class="page">
-    <article class="@MainContentClass">
+    <div class="shadow-outline top-row">
+        <NavMenu />
+    </div>
+
+    <div class="@AppContentClass">
         @Body
-    </article>
-    @if (IsLoggedIn) {
-        <div class="fixed-right-sidebar">
-            <NavMenu />
-        </div>
-    }
+    </div>
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>
@@ -20,7 +19,7 @@
 
 @code {
     private bool IsLoggedIn = true;
-    private string MainContentClass => IsLoggedIn ? "page-content-logged-in" : "page-content";
+    private string AppContentClass => IsLoggedIn ? "app-content-logged-in" : "app-content";
 
     protected override async Task OnInitializedAsync()
     {

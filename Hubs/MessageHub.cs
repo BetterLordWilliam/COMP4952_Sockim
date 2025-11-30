@@ -1,6 +1,8 @@
 using System;
+using System.Text;
 using COMP4952_Sockim.Models;
 using COMP4952_Sockim.Services;
+using COMP4952_Sockim.Services.Exceptions;
 using Microsoft.AspNetCore.SignalR;
 
 namespace COMP4952_Sockim.Hubs;
@@ -23,6 +25,8 @@ public class MessageHub : Hub
         _chatService = chatService;
         _chatUserService = chatUserService;
     }
+
+#region:User / Message
 
     /// <summary>
     /// User joins a chat room (should be called on connection)
@@ -70,36 +74,65 @@ public class MessageHub : Hub
         }
     }
 
-    /// <summary>
-    /// Send a message to a specific chat
-    /// Message should already be saved to database before calling this
-    /// </summary>
+#endregion
+#region:Messaging
+
     public async Task SendMessage(int chatId, ChatMessageDto messageDto)
     {
         try
         {
             _logger.LogInformation($"Message sent to chat {chatId} by user {messageDto.ChatUserId}");
 
-            // Add the message to the database
-            await _messagesService.AddChatMessage(messageDto);
+            ChatMessageDto newMessage = await _messagesService.AddChatMessage(messageDto);
 
-            // Broadcast to all users in the chat
             string groupName = $"chat-{chatId}";
-            await Clients.Group(groupName).SendAsync("ReceiveMessage", messageDto);
+            await Clients.Group(groupName).SendAsync("ReceiveMessage", newMessage);
 
             _logger.LogInformation($"Message broadcasted to chat group {groupName}");
         }
-        catch (Exception ex)
+        catch (ChatMessageException ex)
         {
-            _logger.LogError($"Error sending message: {ex.Message}");
-            await Clients.Caller.SendAsync("Error", new { message = "Failed to send message", error = ex.Message });
+            string msg = "internal error, could not send message to chat";
+            _logger.LogError($"{msg}: {ex.Message}");
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
         }
     }
 
-    /// <summary>
-    /// Get chat history (previous messages).
-    /// Sends chat history only to the caller when they load the chat.
-    /// </summary>
+    public async Task EditMessage(ChatMessageDto messageDto)
+    {
+        try
+        {
+            _logger.LogInformation($"Message {messageDto.Id} edited in chat {messageDto.ChatId}");
+
+            await _messagesService.UpdateChatMessage(messageDto);
+            await Clients.Group($"chat-{messageDto.ChatId}").SendAsync("MessageUpdated", messageDto);
+        }
+        catch (ChatMessageNotFoundException ex)
+        {
+            string msg = "cannot update a message that does not exist";
+            _logger.LogError($"{msg}: {ex.Message}");
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
+        }
+        catch (ChatMessageException ex)
+        {
+            string msg = "internal error, could not update message";
+            _logger.LogError($"{msg}: {ex.Message}");
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
+        }
+    }
+
     public async Task GetChatHistory(int chatId)
     {
         try
@@ -108,17 +141,50 @@ public class MessageHub : Hub
 
             ChatMessageDto[] messages = await _messagesService.GetChatMessages(chatId);
 
-            // Send history only to the caller
             await Clients.Caller.SendAsync("RetrievedMessages", messages);
 
             _logger.LogInformation($"Sent {messages.Length} messages to caller for chat {chatId}");
         }
-        catch (Exception ex)
+        catch (ChatMessageException ex)
         {
+            string msg = "internal error, could not get messages for chat.";
             _logger.LogError($"Error getting chat history: {ex.Message}");
-            await Clients.Caller.SendAsync("Error", new { message = "Failed to load chat history", error = ex.Message });
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
         }
     }
+
+    public async Task DeleteMessage(ChatMessageDto message)
+    {
+        try
+        {
+            _logger.LogInformation($"deleting message with id {message.Id}");
+
+            await _messagesService.DeleteChatMessage(message.Id);
+
+            _logger.LogInformation($"deleted message with id {message.Id}");
+
+            await Clients.Caller.SendAsync("MessageDeletedSuccess", new SockimMessage()
+            {
+                Message = "message deleted successfully"
+            });
+            await Clients.Group($"chat-{message.ChatId}").SendAsync("MessageDeleted", message);
+        }
+        catch (ChatMessageException ex)
+        {
+            string msg = "chat message could not be deleted";
+            _logger.LogError($"{msg}, {ex.Message}");
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg
+            });
+        }
+    }
+
+    // public async Task 
 
     /// <summary>
     /// Broadcasting when user is typing.
@@ -163,4 +229,7 @@ public class MessageHub : Hub
             _logger.LogError($"Error broadcasting stopped typing: {ex.Message}");
         }
     }
+
+#endregion
+
 }

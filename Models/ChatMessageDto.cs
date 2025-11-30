@@ -1,8 +1,9 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace COMP4952_Sockim.Models;
 
-public class ChatMessageDto
+public class ChatMessageDto : IEquatable<ChatMessageDto>
 {
     public int Id { get; set; }
     public int ChatId { get; set; }
@@ -10,4 +11,13 @@ public class ChatMessageDto
     public string SenderEmail { get; set; } = string.Empty;
     public DateTime MessageDateTime { get; set; }
     public string MessageContent { get; set; } = string.Empty;
+    public bool IsSelected { get; set; }
+
+    public bool Equals(ChatMessageDto? other)
+    {
+        if (other is null)
+            return false;
+
+        return Id == other.Id;
+    }
 }

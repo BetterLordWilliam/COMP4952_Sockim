@@ -1,31 +1,52 @@
 @implements IDisposable
 @inject NavigationManager NavigationManager
 
-<div class="nav">
-    <AuthorizeView>
-        <Authorized>
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                    <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-                </NavLink>
-            </div>
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="Account/Manage">
-                    <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> @context.User.Identity?.Name
-                </NavLink>
-            </div>
-            <div class="nav-item px-3">
-                <form action="Account/Logout" method="post">
-                    <AntiforgeryToken />
-                    <input type="hidden" name="ReturnUrl" value="@currentUrl" />
-                    <button type="submit" class="nav-link">
-                        <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
-                    </button>
-                </form>
-            </div>
-        </Authorized>
-    </AuthorizeView>
+
+<div class="navbar">
+    <div class="navbar-brand">
+        <NavLink href="/" Match="NavLinkMatch.All">
+            SockIM
+        </NavLink>
+    </div>
+    <div class="navbar-items">
+        <AuthorizeView>
+            <Authorized>
+                <div class="px-3 nav-item">
+                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                        <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                    </NavLink>
+                </div>
+                <div class="px-3 nav-item">
+                    <NavLink class="nav-link" href="Account/Manage">
+                        <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> @context.User.Identity?.Name
+                    </NavLink>
+                </div>
+                <div class="px-3 nav-item">
+                    <form action="Account/Logout" method="post">
+                        <AntiforgeryToken />
+                        <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                        <button type="submit" class="nav-link">
+                            <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
+                        </button>
+                    </form>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="px-3 nav-item">
+                    <NavLink class="nav-link" href="Account/Login">
+                        <span class="bi bi-lock-nav-menu" aria-hidden="true"></span> Login
+                    </NavLink>
+                </div>
+                <div class="px-3 nav-item">
+                    <NavLink class="nav-link" href="Account/Register">
+                        <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Register
+                    </NavLink>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
 </div>
+
 
 @code {
     private string? currentUrl;

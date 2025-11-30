@@ -155,6 +155,36 @@ namespace COMP4952_Sockim.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("COMP4952_Sockim.Data.ChatUserPreference", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("ChatId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("varchar(7)");
+
+                    b.Property<int>("MemberId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChatId");
+
+                    b.HasIndex("UserId", "ChatId", "MemberId")
+                        .IsUnique();
+
+                    b.ToTable("UserPreferences");
+                });
+
             modelBuilder.Entity("ChatParticipants", b =>
                 {
                     b.Property<int>("ChatUsersId")
@@ -351,6 +381,25 @@ namespace COMP4952_Sockim.Migrations
                     b.Navigation("Chat");
 
                     b.Navigation("ChatUser");
+                });
+
+            modelBuilder.Entity("COMP4952_Sockim.Data.ChatUserPreference", b =>
+                {
+                    b.HasOne("COMP4952_Sockim.Data.Chat", "Chat")
+                        .WithMany()
+                        .HasForeignKey("ChatId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("COMP4952_Sockim.Data.ChatUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Chat");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ChatParticipants", b =>

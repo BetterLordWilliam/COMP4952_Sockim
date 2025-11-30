@@ -11,10 +11,13 @@ using COMP4952_Sockim.Components.Account;
 using COMP4952_Sockim.Services;
 using Microsoft.DotNet.Scaffolding.Shared.Messaging;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Hosting.StaticWebAssets;
 
 var builder = WebApplication.CreateBuilder(args);
 // var connectionString = builder.Configuration.GetConnectionString("ChatDbContext") ?? throw new InvalidOperationException("Connection string 'ChatDbContextConnection' not found.");
 var connectionString = builder.Configuration.GetConnectionString("ChatDbContextMySql") ?? throw new InvalidOperationException("Connection string was really bad");
+
+Console.WriteLine($"[Program] loaded environment: {connectionString}");
 
 // Add logging configuration - disable EF Core verbose logging
 builder.Logging.ClearProviders();
@@ -24,6 +27,13 @@ builder.Logging.AddConsole()
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+if (!builder.Environment.IsDevelopment())
+{
+    // Manually load the static web assets manifest when not in Development.
+    // Done for testing the application in production load but running locally.
+    StaticWebAssetsLoader.UseStaticWebAssets(builder.Environment, builder.Configuration);
+}
 
 // builder.Services.AddDbContext<ChatDbContext>(options =>
 //     options.UseSqlServer(connectionString));
@@ -83,6 +93,7 @@ builder.Services.AddScoped<ChatService>();
 builder.Services.AddScoped<ChatUserService>();
 builder.Services.AddScoped<MessagesService>();
 builder.Services.AddScoped<InvitationsService>();
+builder.Services.AddScoped<UserPreferenceService>();
 
 var app = builder.Build();
 

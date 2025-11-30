@@ -12,303 +12,56 @@
     --bg: #23263a;
     --card-bg: #2c3050;
 
+    --border-radius-small: 8px;
     --border-radius: 16px;
     --shadow: 0 4px 24px rgba(60,70,123,0.12);
+    --shadow-padding: 24px;
     --transition: 0.2s cubic-bezier(.4,0,.2,1);
     --sidebar-width: 260px;
     --header-height: 64px;
+
+    --small-gap: 10px;
+    --badge-diameter: 20px;
 }
+
+/* Iconography */
+
+.round-icon-container {
+    width: 30px;    
+    height: 30px;
+    border-radius: 50%;
+    background-color: red;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.badge-icon {
+    width: var(--badge-diameter); height: var(--badge-diameter);
+    border-radius: 50%;
+    background-color: var(--bs-success);
+}
+
+/* layout */
 
 body {
     background: var(--bg);
     color: var(--text);
-    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    font-family: 'Roboto', sans-serif;
     margin: 0;
-    min-height: 100vh;
+    height: 100vh;
 }
 
-.app-layout {
-    display: flex;
-}
-
-.sidebar {
-    width: var(--sidebar-width);
-    background: var(--primary);
-    color: var(--text);
-    box-shadow: var(--shadow);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 32px 0;
-}
-
-.header {
-    background: var(--secondary);
-    color: var(--text);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 0 32px;
-    border-radius: var(--border-radius);
-    font-size: 2rem;
-    font-weight: 700;
-    letter-spacing: 2px;
-    box-shadow: var(--shadow);
-}
-
-.main-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 0;
-}
-
-.section {
+.shadow-outline {
     background: var(--card-bg);
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
-    padding: 24px;
+    padding: var(--shadow-padding);
     transition: box-shadow var(--transition);
+    height: 100%;
+    width: 100%;
 }
 
-/* --- Chat List --- */
-
-.chat-list-header {
-    display:flex;
-    font-weight:700;
-    margin-top: 1.0rem;
-    margin-bottom: 1.0rem;
-}
-.chat-list {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-.chat-list button {
-    background: var(--primary);
-    color: var(--text);
-    border: none;
-    border-radius: var(--border-radius);
-    padding: 16px 32px;
-    font-size: 1.1rem;
-    font-weight: 500;
-    box-shadow: var(--shadow);
-    cursor: pointer;
-    transition: background var(--transition), transform var(--transition);
-}
-.chat-list button:hover {
-    background: var(--accent);
-    transform: translateY(-2px) scale(1.03);
-}
-
-/* --- Chat Form --- */
-.chat-container {
-    background: var(--card-bg);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow);
-    padding: 32px;
-    margin: 24px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-}
-.chat-header {
-    font-size: 1.7rem;
-    font-weight: 600;
-    color: var(--highlight);
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-.owner-controls {
-    font-size: 1rem;
-    color: var(--accent);
-    background: rgba(110,140,251,0.08);
-    border-radius: 8px;
-    padding: 4px 12px;
-}
-
-/* message list */
-.message-list-header {
-    display:flex;
-    margin-bottom: 1.0rem;
-    padding-bottom: 5px;
-}
-.message-list-wrapper {
-    max-height: 320px;
-    overflow-y: auto;
-    background: rgba(60,70,123,0.08);
-    border-radius: 8px;
-    padding: 12px;
-}
-.message-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-.message-list li {
-    margin-bottom: 18px;
-    padding: 12px 16px;
-    background: rgba(99,108,203,0.12);
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(60,70,123,0.08);
-}
-.message-list b {
-    color: var(--highlight);
-}
-
-/* Generic input styles */
-.input-controls {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-}
-.input-controls input {
-    background: var(--bg);
-    color: var(--text);
-    border: 1px solid var(--accent);
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 1rem;
-    outline: none;
-    transition: border var(--transition);
-}
-.input-controls input:focus {
-    border-color: var(--highlight);
-}
-.input-controls button {
-    background: var(--highlight);
-    color: var(--primary);
-    border: none;
-    border-radius: 8px;
-    padding: 8px 20px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background var(--transition), color var(--transition);
-}
-.input-controls button:hover {
-    background: var(--accent);
-    color: var(--text);
-}
-
-/* Chat members styles */
-.members-panel {
-    background: rgba(99,108,203,0.08);
-    border-radius: 12px;
-    padding: 18px;
-    margin-top: 12px;
-}
-.members-list {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 12px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-.members-list li {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: rgba(60,70,123,0.10);
-    border-radius: 8px;
-    padding: 8px 16px;
-}
-
-/* Button styles */
-.btn-remove {
-    background: var(--secondary);
-    color: var(--text);
-    border: none;
-    border-radius: 6px;
-    padding: 4px 12px;
-    font-size: 0.95rem;
-    cursor: pointer;
-    transition: background var(--transition);
-}
-.btn-remove:hover {
-    background: var(--bs-success);
-    color: var(--primary);
-}
-
-/* invitaiton styles (invitation modal) */
-.invite-section {
-    margin-top: 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-.invite-section input {
-    background: var(--bg);
-    color: var(--text);
-    border: 1px solid var(--accent);
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 1rem;
-    outline: none;
-    transition: border var(--transition);
-}
-.invite-section input:focus {
-    border-color: var(--highlight);
-}
-.invite-section button {
-    background: var(--highlight);
-    color: var(--primary);
-    border: none;
-    border-radius: 8px;
-    padding: 8px 20px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background var(--transition), color var(--transition);
-}
-.invite-section button:hover {
-    background: var(--accent);
-    color: var(--text);
-}
-.invite-status {
-    color: var(--highlight);
-    font-weight: 500;
-    margin-top: 4px;
-}
-.invitation-item {
-    background: var(--card-bg);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow);
-    padding: 18px 24px;
-    margin-bottom: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-}
-.btn-accept, .btn-reject {
-    border: none;
-    border-radius: 8px;
-    padding: 8px 18px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background var(--transition), color var(--transition);
-}
-.btn-accept {
-    background: var(--highlight);
-    color: var(--primary);
-}
-.btn-accept:hover {
-    background: var(--accent);
-    color: var(--text);
-}
-.btn-reject {
-    background: var(--secondary);
-    color: var(--text);
-}
-.btn-reject:hover {
-    background: var(--primary);
-    color: var(--highlight);
-}
-
-/* --- Modal (Create Chat) --- */
 .modal {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -318,6 +71,7 @@ body {
     justify-content: center;
     z-index: 1000;
 }
+
 .modal-content {
     background: var(--card-bg);
     border-radius: var(--border-radius);
@@ -329,43 +83,102 @@ body {
     flex-direction: column;
     gap: 18px;
 }
+
 .modal-content input, .modal-content button {
     margin-top: 8px;
 }
 
-/* --- Responsive --- */
-@media (max-width: 900px) {
-    .app-layout {
-        flex-direction: column;
-    }
-    .sidebar {
-        width: 100%;
-        min-height: 80px;
-        flex-direction: row;
-        justify-content: space-between;
-        padding: 16px 24px;
-    }
-    .main-content {
-        padding: 0;
-    }
-    .section {
-        margin: 12px 8px;
-        padding: 12px;
-    }
+
+/* Buttons */
+
+.btn-regular, .btn-accept, .btn-reject, .btn-danger {
+    border: none;
+    background: var(--primary);
+    border-radius: var(--border-radius-small);
+    color: var(--text);
+    padding: 4px 12px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background var(--transition), color var(--transition);
 }
 
-@media (max-width: 600px) {
-    .modal-content {
-        min-width: 90vw;
-        padding: 24px 8px;
-    }
-    .section, .chat-container {
-        padding: 8px;
-        margin: 8px 0;
-    }
+.btn-regular:hover {
+    background: var(--accent);
 }
 
-/* --- Scrollbar --- */
+.btn-accept:hover {
+    background: var(--highlight);
+}
+
+.btn-reject:hover, .btn-danger:hover {
+    background: var(--bs-success);
+}
+
+.btn-regular-expand {
+    background: var(--primary);
+    color: var(--text);
+    border: none;
+    border-radius: var(--border-radius);
+    padding: 16px 32px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: background var(--transition), transform var(--transition);
+}
+
+.btn-regular-expand:hover {
+    background: var(--accent);
+    transform: translateY(-2px) scale(1.03);
+}
+
+.btn-remove {
+    background: var(--secondary);
+    color: var(--text);
+    border: none;
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background var(--transition);
+}
+
+.btn-remove:hover {
+    background: var(--bs-success);
+}
+
+
+/* generic input styles */
+
+input, textarea, .form-control {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 1rem;
+    outline: none;
+    transition: border var(--transition);
+}
+
+.input-controls {
+    display: flex;
+    flex-direction: column;
+}
+
+.input-controls input {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 1rem;
+    outline: none;
+    transition: border var(--transition);
+}
+
+/* Scrollbar */
+
 ::-webkit-scrollbar {
     width: 8px;
     background: var(--card-bg);

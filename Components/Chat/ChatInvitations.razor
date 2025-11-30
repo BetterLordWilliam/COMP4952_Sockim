@@ -1,4 +1,6 @@
-﻿@using COMP4952_Sockim.Hubs
+@using COMP4952_Sockim.Components.Account.Pages.Manage
+@using COMP4952_Sockim.Components.Account.Shared
+@using COMP4952_Sockim.Hubs
 @using COMP4952_Sockim.Models
 @using COMP4952_Sockim.Data
 @using Microsoft.AspNetCore.Identity
@@ -9,37 +11,53 @@
 
 
 <div style="margin-right: auto;">
-    <button class="btn-remove" @onclick="ToggleModal">Show Invitations (@Invitations.Count)</button>
+    <div class="inv-controls">
+        <button class="btn-regular btn-show-inv" @onclick="ToggleModal">
+            <p class="inv-label">Show Invitations</p>
+            @if(_showBadge) {
+                <div class="inv-icon badge-icon"></div>
+            }
+        </button>
+    </div>
     @if (_showModal)
     {
         <div class="modal">
-            <div class="modal-content invitation-modal-content">
+            <div class="modal-content input-controls">
                 <h3>Invitations</h3>
                 @if (User is not null && Invitations.Count > 0)
                 {
-                    @foreach(ChatInvitationDto invitation in Invitations)
-                    {
-                        <div class="invitation-item">
-                            <span class="invitation-meta"><b>@invitation.ChatName</b> - invited by @invitation.SenderEmail</span>
-                            <button type="button" class="btn-accept" @onclick="() => AcceptInvitation(invitation)" title="Accept invitation">Accept</button>
-                            <button type="button" class="btn-reject" @onclick="() => RejectInvitation(invitation)" title="Reject invitation">Reject</button>
-                        </div>
-                    }
+                    <div class="invitation-list">
+                        @foreach(ChatInvitationDto invitation in Invitations)
+                        {
+                            <div class="invitation-item">
+                                <div>
+                                    <span class="invitation-meta"><b>@invitation.ChatName</b></span>
+                                    <br />
+                                    <span>invited by @invitation.SenderEmail</span>
+                                </div>
+                                <div class="invitation-actions">
+                                    <button type="button" class="btn-accept" @onclick="() => AcceptInvitation(invitation)" title="Accept invitation">
+                                        <img src="/images/Icons/check_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Accept" />
+                                        Accept
+                                    </button>
+                                    <button type="button" class="btn-reject" @onclick="() => RejectInvitation(invitation)" title="Reject invitation">
+                                        <img src="/images/Icons/close_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Reject" />
+                                        Reject
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
                 }
                 else
                 {
                     <p>No pending invitations</p>
                 }
-                <button class="btn-remove" @onclick="ToggleModal">Close</button>
+                <button class="btn-danger" @onclick="ToggleModal">Close</button>
             </div>
         </div>
     }
 </div>
-
-@code {
-    private bool _showModal = false;
-    private void ToggleModal() => _showModal = !_showModal;
-}
 
 @code {
     [Parameter]
@@ -48,6 +66,45 @@
     public ChatUser? User { get; set; }
     [Parameter]
     public List<ChatInvitationDto> Invitations { get; set; } = [];
+
+    private bool _showModal = false;
+    private bool _showBadge = false;
+
+    /// <summary>
+    /// Toggles the visibility of the modal view and the badge (onopen/close)
+    /// </summary>
+    public void ToggleModal()
+    {
+        _showModal = !_showModal;
+        if (_showModal)
+            HideNotificationBadge();
+        if (!_showModal)
+            HideNotificationBadge();
+    }
+
+    /// <summary>
+    /// Toggles the visibility of the notification badge.
+    /// </summary>
+    public void ToggleNotificationBadge()
+    {
+        _showBadge = !_showBadge;
+    }
+
+    /// <summary>
+    /// Shows the notification badge.
+    /// </summary>
+    public void ShowNotificationBadge()
+    {
+        _showBadge = true;
+    }
+
+    /// <summary>
+    /// Hides the notification badge.
+    /// </summary>
+    public void HideNotificationBadge()
+    {
+        _showBadge = false;
+    }
 
     /// <summary>
     /// Accepts an invitation and removes it from the pending list.

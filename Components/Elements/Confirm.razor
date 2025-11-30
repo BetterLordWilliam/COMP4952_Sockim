@@ -1,0 +1,39 @@
+@using System.ComponentModel.DataAnnotations
+
+@if (_showModal) {
+    <div class="modal shadow-outline">
+        <div class="confirm-modal">
+            <h3>@Title</h3>
+            <button class="btn-regular" type="button" @onclick="OnConfirm">Confirm</button>
+            <button class="btn-danger" type="button" @onclick="OnCancel">Cancel</button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public EventCallback<bool> Result { get; set; }
+    [Parameter]
+    public required string Title { get; set; }
+    [Parameter]
+    public required EventCallback<bool> OnModalDone { get; set; }
+
+    public bool _showModal { get; set; } = false;
+
+    private async Task OnConfirm()
+    {
+        _showModal = false;
+        await OnModalDone.InvokeAsync(true);
+    }
+
+    private async Task OnCancel()
+    {
+        _showModal = false;
+        await OnModalDone.InvokeAsync(false);
+    }
+
+    public void ShowModal()
+    {
+        _showModal = true;
+    }
+}

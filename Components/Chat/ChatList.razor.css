@@ -1,0 +1,86 @@
+.chat {
+    background: rgb(51, 56, 97);
+    color: var(--text);
+    border: none;
+    border-radius: var(--border-radius);
+    border-color: var(--accent);
+    padding: 16px 32px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: background var(--transition), transform var(--transition);
+    display: flex;
+    flex-direction: column;
+    gap: var(--small-gap);
+}
+
+.chat:hover {
+    background: var(--accent);
+    transform: translateY(-2px) scale(1.03);
+}
+
+.chat-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-top: 4px;
+    padding-left: 10px;
+    padding-right: 10px;
+    width: 100%;
+
+    overflow-y: scroll;
+
+    height: auto;
+}
+
+.chat-info-container {
+    display: flex;
+    flex-direction: row;
+    position: relative;
+}
+
+.chat-info {
+    flex-grow: 1;
+    width: 100%;
+}
+
+.chat-info-name {
+    margin-right: 6px;
+}
+
+.chat-info-preview {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    /*background: rgba(60,70,123,0.10);*/
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 8px 16px;
+}
+
+.chat-info-preview-sender-email {
+    color: var(--accent);
+}
+
+.chat-info-preview-message {
+    white-space: nowrap;
+    display: inline;
+    overflow: hidden; 
+    text-overflow: ellipsis;
+}
+
+.leave-btn {
+    width: 130px;
+    display: flex;
+    flex-direction: row;
+    gap: 4px;
+    z-index: 100;
+}
+
+.chat-icon {
+    position: absolute;
+    right: 0;
+}

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 using COMP4952_Sockim.Data;
 using COMP4952_Sockim.Models;
 using COMP4952_Sockim.Services;
+using COMP4952_Sockim.Services.Exceptions;
 
 namespace COMP4952_Sockim.Hubs;
 
@@ -27,18 +28,33 @@ public class ChatHub : Hub
 
 #region:User / Chat
 
+    /// <summary>
+    /// Creates group for a connection -- representative of a user.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
     public async Task AddChatUser(int id)
     {
         string userGroupName = $"user-{id}";
         await Groups.AddToGroupAsync(Context.ConnectionId, userGroupName);
     }
 
-    public async Task RemoveChatUser(ChatUserDto chatUserDto)
+    /// <summary>
+    /// Removes connection from group for a chat user.
+    /// </summary>
+    /// <param name="chatUserDto"></param>
+    /// <returns></returns>
+    public async Task RemoveChatUser(int chatUserId)
     {
-        string userGroupName = $"user-{chatUserDto.Id}";
+        string userGroupName = $"user-{chatUserId}";
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, userGroupName);
     }
 
+    /// <summary>
+    /// Connects to a group for a specific chat.
+    /// </summary>
+    /// <param name="chatId"></param>
+    /// <returns></returns>
     public async Task ConnectToChatGroup(int chatId)
     {
         string chatGroupName = $"chat-{chatId}";
@@ -46,6 +62,11 @@ public class ChatHub : Hub
         _logger.LogInformation(chatGroupName);
     }
 
+    /// <summary>
+    /// Remobes connection form a group for a specific.
+    /// </summary>
+    /// <param name="chatId"></param>
+    /// <returns></returns>
     public async Task DisconnectToChatGroup(int chatId)
     {
         string chatGroupName = $"chat-{chatId}";
@@ -55,69 +76,73 @@ public class ChatHub : Hub
 #endregion
 #region:Chat
 
-    /// <summary>
-    /// Creates a new chat and sends invitations to specified users.
-    /// </summary>
-    public async Task AddChat(ChatDto chatDto, List<ChatInvitationDto> invitations)
+    public async Task AddChat(ChatDto chatDto)
     {
         try
         {
             _logger.LogInformation($"Adding new chat: {chatDto.ChatName}");
 
-            ChatDto? createdChat = await _chatService.CreateChat(chatDto);
-            if (createdChat == null)
-            {
-                _logger.LogError("Failed to create chat");
-                await Clients.Caller.SendAsync("Error", new { message = "Failed to create chat" });
-                return;
-            }
-
-            bool success = await _invitationService.AddInvitations(invitations.ToArray());
-
-            if (success)
-            {
-                _logger.LogInformation($"Added {invitations.Count} invitations for chat {createdChat.Id}");
-            }
-            else
-            {
-                _logger.LogWarning($"Failed to add invitations {chatDto.ChatName}, {chatDto.Id}");
-            }
-
-            if (invitations != null && invitations.Count > 0)
-            {
-                foreach (var invitation in invitations)
-                {
-                    invitation.ChatId = createdChat.Id;
-                    invitation.SenderId = chatDto.ChatOwnerId;
-
-                    bool added = await _invitationService.AddInvitation(invitation);
-                    if (added)
-                    {
-                        // 3. Notify recipient about invitation
-                        await Clients.Group($"user-{invitation.ReceiverId}")
-                            .SendAsync("IncomingInvitation", invitation);
-                        _logger.LogInformation($"Invitation sent to user {invitation.ReceiverId}");
-                    }
-                    else
-                    {
-                    }
-                }
-
-            }
+            ChatDto createdChat = await _chatService.CreateChat(chatDto);
 
             await Clients.Caller.SendAsync("ChatCreated", createdChat);
             _logger.LogInformation($"Chat '{createdChat.ChatName}' created successfully");
         }
-        catch (Exception ex)
+        catch (ChatOwnerNotFound ex)
+        {
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = $"could not create chat for owner {chatDto.ChatOwnerEmail}, owner id {chatDto.ChatOwnerId}",
+            });
+        }
+        catch (ChatException ex)
         {
             _logger.LogError($"Error adding chat: {ex.Message}");
-            await Clients.Caller.SendAsync("Error", new { message = "Failed to create chat", error = ex.Message });
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = "Failed to create chat",
+            });
         }
     }
 
-    /// <summary>
-    /// Retrieve chats for a specific user.
-    /// </summary>
+    public async Task RenameChat(ChatDto chat)
+    {
+        try
+        {
+            ChatDto newChat = await _chatService.UpdateChat(chat);
+
+            await Clients.Group($"chat-{chat.Id}").SendAsync("ChatUpdated", newChat);
+
+            // Notify chat users that are not connected currently to the chat that it as updated
+            ChatUserDto[] chatUsers = await _chatService.GetChatMembers(newChat.Id);
+            List<Task> chatUpdates = new ();
+            foreach (ChatUserDto chatUser in chatUsers)
+            {
+                chatUpdates.Add(Clients.Group($"user-{chatUser.Id}").SendAsync("ChatUpdated", newChat));
+            }
+            Task.WaitAll(chatUpdates);
+        }
+        catch (ChatNotFoundException ex)
+        {
+            string msg = "cannot rename a chat that does not exist";
+            _logger.LogError($"{msg}: {ex.Message}");
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
+        }
+        catch (ChatException ex)
+        {
+            string msg = "internal error, could not rename chat";
+            _logger.LogError($"{msg}: {ex.Message}");
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
+        }
+    }
+
     public async Task RetrieveChats(int userId)
     {
         try
@@ -125,128 +150,186 @@ public class ChatHub : Hub
             ChatDto[] userChats = await _chatService.GetChatsForUser(userId);
             await Clients.Caller.SendAsync("RetrievedChats", userChats);
         }
-        catch (Exception ex)
+        catch (ChatException ex)
         {
-            _logger.LogError($"Error retrieving user chats: {ex.Message}");
-            await Clients.Caller.SendAsync("Error", new { message = "Failed to get user chats" });
+            string msg = "internal error, could not retrieve chats for user";
+            _logger.LogError($"{msg}: {ex.Message}");
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
         }
     }
 
-    /// <summary>
-    /// Invite a user to an existing chat by email.
-    /// </summary>
     public async Task InviteUserToChat(int chatId, int senderId, string receiverEmail)
     {
         try
         {
             _logger.LogInformation($"Inviting user {receiverEmail} to chat {chatId} by user {senderId}");
 
-            // Verify chat and sender
-            Chat? chat = await _chatService.GetChatById(chatId);
-            if (chat == null)
+            ChatDto chat = await _chatService.GetChatById(chatId);
+            ChatUserDto sender = _chatUserService.GetUser(senderId);
+            ChatUserDto receiver = _chatUserService.GetUserByEmail(receiverEmail);
+            ChatInvitationDto invitationDto = new()
             {
-                _logger.LogError($"Chat {chatId} not found");
-                await Clients.Caller.SendAsync("Error", new { message = "Chat not found" });
-                return;
-            }
+                ChatName = chat.ChatName,
+                SenderId = senderId,
+                SenderEmail = sender.Email ?? string.Empty,
+                ReceiverId = receiver.Id,
+                ReceiverEmail = receiver.Email ?? string.Empty,
+                ChatId = chatId,
+                Accepted = false
+            };
 
-            ChatUser? sender = _chatUserService.GetUser(senderId);
-            ChatUser? invitee = _chatUserService.GetUserByEmail(receiverEmail);
+            await _invitationService.AddInvitation(invitationDto);
 
-            if (invitee is not null && sender is not null)
-            {
-                var invitationDto = new ChatInvitationDto
+            await Clients.Group($"user-{invitationDto.ReceiverId}")
+                .SendAsync("IncomingInvitation", invitationDto);
+            await Clients.Caller
+                .SendAsync("InvitationSent", new SockimMessage()
                 {
-                    ChatName = chat.ChatName,
-                    SenderId = senderId,
-                    SenderEmail = sender.Email ?? string.Empty,
-                    ReceiverId = invitee.Id,
-                    ReceiverEmail = invitee.Email ?? string.Empty,
-                    ChatId = chatId,
-                    Accepted = false
-                };
+                    Message = $"invitation sent to \"{invitationDto.ReceiverEmail}\""
+                });
 
-                bool added = await _invitationService.AddInvitation(invitationDto);
-                if (added)
-                {
-                    // Notify the recipient via InvitationHub group
-                    await Clients.Group($"user-{invitationDto.ReceiverId}")
-                        .SendAsync("IncomingInvitation", invitationDto);
-
-                    // Confirm to sender
-                    await Clients.Caller.SendAsync("InvitationSent", new { email = receiverEmail, chatId });
-                    _logger.LogInformation($"Invitation sent to {receiverEmail} for chat {chatId}");
-                }
-                else
-                {
-                    _logger.LogError($"Failed to create invitation for {receiverEmail}");
-                    await Clients.Caller.SendAsync("Error", new { message = "Failed to send invitation" });
-                }
-            }
+            _logger.LogInformation($"Invitation sent to {receiverEmail} for chat {chatId}");
         }
-        catch (Exception ex)
+        catch (ChatNotFoundException ex)
         {
-            _logger.LogError($"Error inviting user to chat: {ex.Message}");
-            await Clients.Caller.SendAsync("Error", new { message = "Failed to invite user", error = ex.Message });
+            string msg = "tried to invite user to a chat that does not exist";
+            _logger.LogError(msg);
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
+        }
+        catch (ChatUserNotFoundException ex)
+        {
+            string msg = "tried to invite user that does not exist";
+            _logger.LogError(msg);
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
+        }
+        catch (ChatInvitationUserInvitedException ex)
+        {
+            string msg = "tried to invite a user to a chat they are already a part of";
+            _logger.LogError($"{msg}: {ex.Message}");
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg
+            });
+        }
+        catch (Exception ex) when (ex is ChatUserException || ex is ChatException || ex is ChatInvitationException)
+        {
+            string msg = "internal error, could not invite user";
+            _logger.LogError($"{msg}, {ex.Message}");
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
         }
     }
 
-    /// <summary>
-    /// Remove a user from a chat.
-    /// Only the chat owner can remove members.
-    /// </summary>
-    public async Task RemoveUserFromChat(int chatId, int requesterId, int userIdToRemove)
+    public async Task InviteUsersToChat(ChatDto chatDto, ChatUser user, List<string> recieverEmails)
     {
         try
         {
-            _logger.LogInformation($"User {requesterId} requesting to remove user {userIdToRemove} from chat {chatId}");
-
-            // Get the chat to verify requester is the owner
-            Chat? chat = await _chatService.GetChatById(chatId);
-            if (chat == null)
-            {
-                _logger.LogError($"Chat {chatId} not found");
-                await Clients.Caller.SendAsync("Error", new { message = "Chat not found" });
-                return;
-            }
-
-            ChatDto? chatDto = _chatService.ConvertToDto(chat);
-
-            // Prevent removing the owner
-            if (chat.ChatOwnerId == userIdToRemove)
-            {
-                _logger.LogWarning($"Cannot remove chat owner from chat");
-                await Clients.Caller.SendAsync("Error", new { message = "Cannot remove chat owner" });
-                return;
-            }
-
-            // Remove the user from chat
-            bool removed = await _chatService.RemoveUserFromChat(chatId, userIdToRemove);
-            if (removed)
-            {
-                ChatUser? chatUser          = _chatUserService.GetUser(userIdToRemove);
-                ChatUserDto? chatUserDto    = _chatUserService.ConvertToDto(chatUser);
-
-                // Notify the removed user
-                await Clients.Group($"user-{userIdToRemove}")
-                    .SendAsync("RemovedFromChat", chatDto);
-
-                // Notify chat members
-                await Clients.Group($"chat-{chatId}")
-                    .SendAsync("MemberRemoved", chatDto, chatUserDto);
-
-                _logger.LogInformation($"User {userIdToRemove} removed from chat {chatId}");
-            }
-            else
-            {
-                _logger.LogError($"Failed to remove user {userIdToRemove} from chat {chatId}");
-                await Clients.Caller.SendAsync("Error", new { message = "Failed to remove member" });
-            }
         }
         catch (Exception ex)
         {
+        }
+    }
+
+    public async Task RemoveUserFromChat(int chatId, int userIdToRemove)
+    {
+        try
+        {
+            _logger.LogInformation($"Requesting to remove user {userIdToRemove} from chat {chatId}");
+
+            ChatDto chatDto = await _chatService.GetChatById(chatId);
+            ChatDto? updatedChat = await _chatService.RemoveUserFromChat(chatId, userIdToRemove);
+            ChatUserDto chatUserDto = _chatUserService.GetUser(userIdToRemove);
+
+            await Clients.Group($"user-{userIdToRemove}")
+                .SendAsync("RemovedFromChat", chatDto);
+
+            await Clients.Group($"chat-{chatId}")
+                .SendAsync("MemberRemoved", chatDto, chatUserDto);
+
+            _logger.LogInformation($"User {userIdToRemove} removed from chat {chatId}");
+
+            if (updatedChat is not null)
+            {
+                await Clients.Group($"chat-{chatId}")
+                    .SendAsync("ChatUpdated", updatedChat);
+            }
+        }
+        catch (ChatNotFoundException ex)
+        {
+            string msg = "you cannot remvoe a user from a chat that does not exist";
+            _logger.LogError($"Chat {chatId} not found: {ex.Message}");
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
+        }
+        catch (ChatUserNotFoundException ex)
+        {
+            string msg = "you cannot remove this user";
+            _logger.LogError($"{msg}: {ex.Message}");
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
+        }
+        catch (ChatOwnerCannotBeRemovedException ex)
+        {
+            string msg = "you cannot remove the chat owner";
+            _logger.LogError($"{msg}: {ex.Message}");
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
+        }
+        catch (Exception ex) when (ex is ChatException || ex is ChatUserException)
+        {
+            string msg = "internal error, could not remove user from chat";
             _logger.LogError($"Error removing user from chat: {ex.Message}");
-            await Clients.Caller.SendAsync("Error", new { message = "Failed to remove member", error = ex.Message });
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
+        }
+    }
+
+    public async Task PromoteToChatOwner(int chatId, int newOwnerId)
+    {
+        try
+        {
+            ChatDto updatedChat = await _chatService.PromoteToOwner(chatId, newOwnerId);
+            await Clients.Group($"chat-{chatId}").SendAsync("ChatUpdated", updatedChat);
+        }
+            catch (ChatNotFoundException ex)
+        {
+            await Clients.Caller.SendAsync("Error", "Chat not found");
+        }
+        catch (ChatUserNotFoundException ex)
+        {
+            await Clients.Caller.SendAsync("Error", "User is not a member of this chat");
+        }
+        catch (ChatException ex)
+        {
+            await Clients.Caller.SendAsync("Error", "Failed to promote user");
         }
     }
 
@@ -262,83 +345,87 @@ public class ChatHub : Hub
 
             _logger.LogInformation($"send {users.Length} messages to called for chat {chatId}");
         }
-        catch (Exception ex)
+        catch (ChatNotFoundException ex)
         {
-            _logger.LogError($"error getting members from the chat: {ex.Message}");
-            await Clients.Caller.SendAsync("Error", new { message = "Failed to load chat members", error = ex.Message });
+            string msg = "cannot get chat members for a chat that does not exist";
+            _logger.LogError($"{msg}: {ex.Message}");
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
+        }
+        catch (ChatException ex)
+        {
+            string msg = "internal error, could not get users for chat";
+            _logger.LogError($"{msg}: {ex.Message}");
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
         }
     }
 
 #endregion
 #region:Chat Invitations
 
-    /// <summary>
-    /// Send an invitation to a single user.
-    /// </summary>
     public async Task SendInvitation(ChatInvitationDto invitationDto)
     {
         try
         {
             _logger.LogInformation($"Sending invitation from {invitationDto.SenderId} to {invitationDto.ReceiverId} for chat {invitationDto.ChatId}");
 
-            bool added = await _invitationService.AddInvitation(invitationDto);
-            if (added)
+            await _invitationService.AddInvitation(invitationDto);
+
+            await Clients.Group($"user-{invitationDto.ReceiverId}").SendAsync("IncomingInvitation", invitationDto);
+
+            _logger.LogInformation($"Invitation sent to user {invitationDto.ReceiverId}");
             {
-                // Notify the recipient
-                await Clients.Group($"user-{invitationDto.ReceiverId}").SendAsync("IncomingInvitation", invitationDto);
-                _logger.LogInformation($"Invitation sent to user {invitationDto.ReceiverId}");
-            }
-            else
-            {
-                _logger.LogError($"Failed to send invitation to user {invitationDto.ReceiverId}");
                 await Clients.Caller.SendAsync("Error", new { message = "Failed to send invitation" });
             }
         }
-        catch (Exception ex)
+        catch (ChatInvitationException ex)
         {
-            _logger.LogError($"Error sending invitation: {ex.Message}");
-            await Clients.Caller.SendAsync("Error", new { message = "Failed to send invitation", error = ex.Message });
+            string msg = $"Failed to send invitation to user {invitationDto.ReceiverId}";
+            _logger.LogError($"{msg}: {ex.Message}");
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
         }
     }
 
-    /// <summary>
-    /// Send invitations to multiple users.
-    /// </summary>
     public async Task SendInvitations(ChatInvitationDto[] invitationDtos)
     {
         try
         {
             _logger.LogInformation($"Sending {invitationDtos.Length} invitations");
 
-            bool allAdded = await _invitationService.AddInvitations(invitationDtos);
-            if (allAdded)
-            {
-                foreach (var invitation in invitationDtos)
-                {
-                    // Notify each recipient
-                    await Clients.Group($"user-{invitation.ReceiverId}")
-                        .SendAsync("IncomingInvitation", invitation);
-                }
+            await _invitationService.AddInvitations(invitationDtos);
 
-                _logger.LogInformation($"All {invitationDtos.Length} invitations sent successfully");
-            }
-            else
+            foreach (var invitation in invitationDtos)
             {
-                _logger.LogError("Failed to send all invitations");
-                await Clients.Caller.SendAsync("Error", new { message = "Failed to send some invitations" });
+                // Notify each recipient
+                await Clients.Group($"user-{invitation.ReceiverId}")
+                    .SendAsync("IncomingInvitation", invitation);
             }
+
+            _logger.LogInformation($"All {invitationDtos.Length} invitations sent successfully");
         }
-        catch (Exception ex)
+        catch (ChatInvitationException ex)
         {
-            _logger.LogError($"Error sending invitations: {ex.Message}");
-            await Clients.Caller.SendAsync("Error", new { message = "Failed to send invitations", error = ex.Message });
+            string msg = "internal error adding chat invitation";
+            _logger.LogError($"{msg}: {ex.Message}");
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
         }
     }
 
-    /// <summary>
-    /// Get all pending invitations for a user.
-    /// Called when user first connects or refreshes.
-    /// </summary>
     public async Task RetrieveInvitations(int userId)
     {
         try
@@ -350,103 +437,112 @@ public class ChatHub : Hub
 
             _logger.LogInformation($"Sent {pendingInvitations.Length} pending invitations to user {userId}");
         }
-        catch (Exception ex)
+        catch (ChatInvitationException ex)
         {
-            _logger.LogError($"Error retrieving invitations: {ex.Message}");
-            await Clients.Caller.SendAsync("Error", new { message = "Failed to get invitations", error = ex.Message });
+            string msg = "internal error, could not retrieve invitations";
+            _logger.LogError($"{msg}: {ex.Message}");
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
         }
     }
 
-    /// <summary>
-    /// User accepts an invitation to a chat.
-    /// </summary>
     public async Task AcceptInvitation(ChatInvitationDto invitationDto)
     {
         try
         {
             _logger.LogInformation($"User {invitationDto.ReceiverId} accepting invitation from {invitationDto.SenderId} for chat {invitationDto.ChatId}");
 
-            // 1. Add receiver to chat (CRUD)
-            bool userAdded = await _invitationService.AddUserToChat(invitationDto.ChatId, invitationDto.ReceiverId);
-            if (!userAdded)
-            {
-                _logger.LogError($"Failed to add user {invitationDto.ReceiverId} to chat {invitationDto.ChatId}");
-                await Clients.Caller.SendAsync("Error", new { message = "Failed to accept invitation" });
-                return;
-            }
+            await _chatService.AddUserToChat(invitationDto.ChatId, invitationDto.ReceiverId);
 
-            ChatUser? chatUser = _chatUserService.GetUser(invitationDto.ReceiverId);
-            ChatUserDto? chatUserDto = _chatUserService.ConvertToDto(chatUser);
+            ChatUserDto chatUserDto = _chatUserService.GetUser(invitationDto.ReceiverId);
 
-            // 2. Delete the invitation (CRUD)
-            bool invitationDeleted = await _invitationService.DeleteInvitation(
+            await _invitationService.DeleteInvitation(
                 invitationDto.SenderId,
                 invitationDto.ReceiverId,
                 invitationDto.ChatId);
 
-            if (!invitationDeleted)
-            {
-                _logger.LogWarning($"Failed to delete invitation for user {invitationDto.ReceiverId}");
-            }
+            ChatDto updatedChat = await _chatService.GetChatById(invitationDto.ChatId);
 
-            // 3. Get updated chat with all users
-            Chat? chat = await _chatService.GetChatById(invitationDto.ChatId);
-            if (chat == null)
-            {
-                _logger.LogError($"Chat {invitationDto.ChatId} not found after accepting invitation");
-                await Clients.Caller.SendAsync("Error", new { message = "Chat not found" });
-                return;
-            }
-
-            ChatDto updatedChat = _chatService.ConvertToDto(chat);
-
-            // 4. Notify the accepting user
             await Clients.Group($"user-{invitationDto.ReceiverId}")
                 .SendAsync("InvitationAccepted", updatedChat);
 
-            // 5. Notify chat members that new user joined
             _logger.LogInformation($"{invitationDto.ChatId}, SENDING CHAT GROUP THAT NEW USER IS MEMBER OF THE GROUP");
+
             await Clients.Group($"chat-{invitationDto.ChatId}")
                 .SendAsync("MemberJoined", chatUserDto);
 
             _logger.LogInformation($"User {invitationDto.ReceiverId} successfully accepted invitation for chat {invitationDto.ChatId}");
         }
-        catch (Exception ex)
+        catch (ChatNotFoundException ex)
         {
-            _logger.LogError($"Error accepting invitation: {ex.Message}");
-            await Clients.Caller.SendAsync("Error", new { message = "Failed to accept invitation", error = ex.Message });
+            string msg = "cannot accept invitation to chat that does not exist";
+            _logger.LogError($"{msg}: {ex.Message}");
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
+        }
+        catch (ChatUserNotFoundException ex)
+        {
+            string msg = "cannot accept invitation if you do not exist";
+            _logger.LogError($"{msg}: {ex.Message}");
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
+        }
+        catch (Exception ex) when (ex is ChatException || ex is ChatUserException || ex is ChatInvitationException)
+        {
+            string msg = "internal error, could not accept invitation";
+            _logger.LogError($"{msg}: {ex.Message}");
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
         }
     }
 
-    /// <summary>
-    /// User rejects an invitation to a chat.
-    /// </summary>
     public async Task RejectInvitation(int senderId, int receiverId, int chatId)
     {
         try
         {
             _logger.LogInformation($"User {receiverId} rejecting invitation from {senderId} for chat {chatId}");
 
-            // Delete the invitation (CRUD)
-            bool deleted = await _invitationService.DeleteInvitation(senderId, receiverId, chatId);
+            await _invitationService.DeleteInvitation(senderId, receiverId, chatId);
 
-            if (deleted)
-            {
-                // Notify the user
-                await Clients.Group($"user-{senderId}").SendAsync("InvitationRejected", new { ChatId = chatId });
-                _logger.LogInformation($"Invitation rejected successfully for user {receiverId}");
-            }
-            else
-            {
-                _logger.LogWarning($"Failed to delete invitation for rejection: {senderId}, {receiverId}, {chatId}");
-                await Clients.Caller.SendAsync("Error", new { message = "Failed to reject invitation" });
-            }
+            await Clients.Group($"user-{senderId}").SendAsync("InvitationRejected", new { ChatId = chatId });
+            _logger.LogInformation($"Invitation rejected successfully for user {receiverId}");
         }
-        catch (Exception ex)
+        catch (ChatInvitationException ex)
         {
-            _logger.LogError($"Error rejecting invitation: {ex.Message}");
-            await Clients.Caller.SendAsync("Error", new { message = "Failed to reject invitation", error = ex.Message });
+            string msg = $"internal error could not reject invitation.";
+            _logger.LogError($"{msg}: {ex.Message}");
+
+            await Clients.Caller.SendAsync("Error", new SockimError()
+            {
+                Message = msg,
+            });
         }
+    }
+
+#endregion
+
+#region:message notifs
+
+    public async Task NewChatMessage(ChatDto chat, ChatMessageDto message)
+    {
+        List<Task> notifs = new List<Task>();
+        foreach (var userId in chat.ChatMemberIds)
+        {
+            notifs.Add(Clients.Group($"user-{userId}").SendAsync("NewChatMessage", message));
+        }
+        Task.WaitAll(notifs);
     }
 
 #endregion

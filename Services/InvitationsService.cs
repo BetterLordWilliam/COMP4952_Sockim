@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using COMP4952_Sockim.Data;
 using COMP4952_Sockim.Models;
+using COMP4952_Sockim.Services.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace COMP4952_Sockim.Services;
@@ -18,55 +19,14 @@ public class InvitationsService
     }
 
     /// <summary>
-    /// Adds a user to a chat.
-    /// Pure CRUD operation - adds ChatUser relationship without any orchestration.
+    /// Deletes a chat invitation.
     /// </summary>
-    public async Task<bool> AddUserToChat(int chatId, int userId)
-    {
-        try
-        {
-            Chat? chat = await _chatDbContext.Chats
-                .Include(c => c.ChatUsers)
-                .FirstOrDefaultAsync(c => c.Id == chatId);
-
-            if (chat == null)
-            {
-                _logger.LogError($"Chat with ID {chatId} not found");
-                return false;
-            }
-
-            ChatUser? user = await _chatDbContext.Users.FindAsync(userId);
-            if (user == null)
-            {
-                _logger.LogError($"User with ID {userId} not found");
-                return false;
-            }
-
-            // Check if user is already in chat
-            if (chat.ChatUsers.Any(cu => cu.Id == userId))
-            {
-                _logger.LogWarning($"User {userId} is already in chat {chatId}");
-                return false;
-            }
-
-            chat.ChatUsers.Add(user);
-            await _chatDbContext.SaveChangesAsync();
-
-            _logger.LogInformation($"User {userId} added to chat {chatId}");
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError($"Error adding user to chat: {ex.Message}");
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Deletes an invitation by composite key.
-    /// Pure CRUD operation.
-    /// </summary>
-    public async Task<bool> DeleteInvitation(int senderId, int receiverId, int chatId)
+    /// <param name="senderId"></param>
+    /// <param name="receiverId"></param>
+    /// <param name="chatId"></param>
+    /// <returns></returns>
+    /// <exception cref="ChatInvitationException"></exception>
+    public async Task DeleteInvitation(int senderId, int receiverId, int chatId)
     {
         try
         {
@@ -79,58 +39,60 @@ public class InvitationsService
             if (deletedCount > 0)
             {
                 _logger.LogInformation($"Deleted invitation from {senderId} to {receiverId} for chat {chatId}");
-                return true;
             }
 
             _logger.LogWarning($"No invitation found to delete for IDs: {senderId}, {receiverId}, {chatId}");
-            return false;
         }
-        catch (Exception ex)
+        catch (ArgumentNullException ex)
         {
-            _logger.LogError($"Error deleting invitation: {ex.Message}");
-            return false;
+            _logger.LogError($"error deleting invitation: {ex.Message}");
+            throw new ChatInvitationException("could not delete invitation");
         }
     }
 
     /// <summary>
-    /// Adds multiple invitations from DTOs.
+    /// Adds multiple chat invitations
     /// </summary>
-    public async Task<bool> AddInvitations(ChatInvitationDto[] invitationDtos)
+    /// <param name="invitationDtos"></param>
+    /// <exception cref="ChatInvitationException"></exception>
+    /// <returns></returns>
+    public async Task AddInvitations(ChatInvitationDto[] invitationDtos)
+    {
+        foreach (ChatInvitationDto invitation in invitationDtos)
+        {
+            await AddInvitation(invitation);
+        }
+
+        _logger.LogInformation($"Added invitations successfully");
+    }
+
+    /// <summary>
+    /// Adds chat invitation
+    /// </summary>
+    /// <param name="invitationDto"></param>
+    /// <returns></returns>
+    /// <exception cref="ChatInvitationException"></exception>
+    public async Task AddInvitation(ChatInvitationDto invitationDto)
     {
         try
         {
-            List<ChatInvitation> invitations = new();
-            foreach (var dto in invitationDtos)
+            Chat? chat = await _chatDbContext.Chats
+                .Include(c => c.ChatUsers)
+                .Where(c => c.Id == invitationDto.ChatId)
+                .FirstOrDefaultAsync();
+
+            if (chat is null)
             {
-                invitations.Add(new ChatInvitation
-                {
-                    SenderId = dto.SenderId,
-                    ReceiverId = dto.ReceiverId,
-                    ChatId = dto.ChatId,
-                    Accepted = dto.Accepted
-                });
+                _logger.LogError($"chat with the id {invitationDto.ChatId} does not exist");
+                throw new ChatInvitationException();
             }
 
-            await _chatDbContext.Invitations.AddRangeAsync(invitations);
-            await _chatDbContext.SaveChangesAsync();
+            if (chat.ChatUsers.Where(c => c.Id == invitationDto.ReceiverId).FirstOrDefault() is not null)
+            {
+                _logger.LogError($"user with id {invitationDto.ReceiverId} is already a member of chat {chat.Id}");
+                throw new ChatInvitationUserInvitedException();
+            }
 
-            _logger.LogInformation($"Added {invitations.Count} invitations successfully");
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError($"Could not add multiple invitations: {ex.Message}");
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Adds a single invitation from DTO.
-    /// </summary>
-    public async Task<bool> AddInvitation(ChatInvitationDto invitationDto)
-    {
-        try
-        {
             ChatInvitation invitation = new()
             {
                 SenderId = invitationDto.SenderId,
@@ -143,18 +105,35 @@ public class InvitationsService
             await _chatDbContext.SaveChangesAsync();
 
             _logger.LogInformation($"Added invitation successfully");
-            return true;
         }
-        catch (Exception ex)
+        catch (OperationCanceledException ex)
         {
-            _logger.LogError($"Could not add invitation: {ex.Message}");
-            return false;
+            _logger.LogError($"add invitation operation cancelled: {ex.Message}");
+            throw new ChatInvitationException();
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            _logger.LogError($"could not add multiple invitations, concurrency exception: {ex.Message}");
+            throw new ChatInvitationException();
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError($"could not add invitation for {invitationDto.ReceiverId} to chat {invitationDto.ChatId}: {ex.Message}");
+            throw new ChatInvitationException();
+        }
+        catch (ArgumentNullException ex)
+        {
+            _logger.LogError($"could not add invitation: {ex.Message}");
+            throw new ChatInvitationException();
         }
     }
 
     /// <summary>
-    /// Gets pending invitations for a specific user (non-tracking).
+    /// Retrieves a users invitations
     /// </summary>
+    /// <param name="userId"></param>
+    /// <returns></returns>
+    /// <exception cref="ChatInvitationException"></exception>
     public async Task<ChatInvitationDto[]> GetUserInvitations(int userId)
     {
         try
@@ -178,32 +157,52 @@ public class InvitationsService
                 Accepted = i.Accepted
             }).ToArray();
         }
-        catch (Exception ex)
+        catch (OperationCanceledException ex)
         {
-            _logger.LogError($"Could not get invitations: {ex.Message}");
-            throw;
+            _logger.LogError($"could not get invitations for user: {ex.Message}");
+            throw new ChatInvitationException("could not get user invitations");
+        }
+        catch (ArgumentNullException ex)
+        {
+            _logger.LogError($"could not get invitations: {ex.Message}");
+            throw new ChatInvitationException("could not get user invitations");
         }
     }
 
     /// <summary>
-    /// Gets an invitation by composite key.
+    /// Gets a specific invitation.
     /// </summary>
-    public async Task<ChatInvitation?> GetInvitation(int senderId, int receiverId, int chatId)
+    /// <param name="senderId"></param>
+    /// <param name="receiverId"></param>
+    /// <param name="chatId"></param>
+    /// <returns></returns>
+    /// <exception cref="ChatInvitationException"></exception>
+    public async Task<ChatInvitationDto> GetInvitation(int senderId, int receiverId, int chatId)
     {
         try
         {
-            return await _chatDbContext.Invitations
+            ChatInvitation? chatInvitation = await _chatDbContext.Invitations
                 .Include(i => i.Chat)
                 .Include(i => i.Sender)
                 .Include(i => i.Receiver)
                 .FirstOrDefaultAsync(i => i.ChatId == chatId
                     && i.SenderId == senderId
                     && i.ReceiverId == receiverId);
+
+            if (chatInvitation is null)
+                throw new ChatInvitationException("no such invitation exists");
+
+            return ConvertToDto(chatInvitation);
         }
-        catch (Exception ex)
+        catch (OperationCanceledException ex)
         {
-            _logger.LogError($"Error retrieving invitation: {ex.Message}");
-            return null;
+            _logger.LogError($"could not retrieving invitation: {ex.Message}");
+            throw new ChatInvitationException("could not get invitation for user");
+        }
+        catch (ArgumentNullException ex)
+        {
+            _logger.LogError($"could not retrieving invitation: {ex.Message}");
+            throw new ChatInvitationException("could not get invitation for user");
         }
     }
 
