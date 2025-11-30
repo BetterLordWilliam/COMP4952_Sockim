@@ -11,12 +11,17 @@
     <div class="chat-list">
         @foreach (ChatDto chat in Chats)
         {
-            <button class="btn-regular-expand" type="button" @onclick="() => OpenChat(chat)">
-                <p>@chat.ChatName</p>
-                @chat.Unread
-                <div class="inv-icon badge-icon"></div>
-                <p>@chat.MostRecent?.MessageContent</p>
-            </button>
+            <div class="chat">
+                <div class="chat-info" @onclick="() => OpenChat(chat)">
+                    @if (chat.Unread)
+                    {
+                        <div class="inv-icon badge-icon"></div>
+                    }
+                    <div>@chat.ChatName</div>
+                    <div>@chat.MostRecent?.MessageContent</div>
+                </div>
+                <button class="btn-danger">Leave</button>
+            </div>
         }
     </div>
 }

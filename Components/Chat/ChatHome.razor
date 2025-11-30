@@ -246,9 +246,10 @@
     /// </summary>
     public async ValueTask DisposeAsync()
     {
-        if (_chatHubConnection.State == HubConnectionState.Connected)
+        if (_chatHubConnection is not null)
         {
-            await _chatHubConnection.SendAsync("RemoveChatUser", _user.Id);
+            if (_chatHubConnection.State == HubConnectionState.Connected)
+                await _chatHubConnection.SendAsync("RemoveChatUser", _user.Id);
 
             _chatHubConnection.Remove("ChatCreated");
             _chatHubConnection.Remove("RetrievedChats");
@@ -262,14 +263,16 @@
             _chatHubConnection.Remove("InvitationRejected");
             _chatHubConnection.Remove("Error");
 
-            await _chatHubConnection.StopAsync();
+            if (_chatHubConnection.State == HubConnectionState.Connected)
+                await _chatHubConnection.StopAsync();
         }
-        if (_messageHubConnection.State == HubConnectionState.Connected)
+        if (_messageHubConnection is not null)
         {
             _messageHubConnection.Remove("Error");
             _messageHubConnection.Remove("MessageDeletedSuccess");
 
-            await _messageHubConnection.StopAsync();
+            if (_messageHubConnection.State == HubConnectionState.Connected)
+                await _messageHubConnection.StopAsync();
         }
     }
 }

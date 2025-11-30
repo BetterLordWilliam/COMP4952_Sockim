@@ -258,7 +258,8 @@
             ChatHubConnection.Remove("RetrievedUsers");
             ChatHubConnection.Remove("ChatUpdated");
 
-            await ChatHubConnection.SendAsync("DisconnectToChatGroup", ChatDto.Id);
+            if (ChatHubConnection.State == HubConnectionState.Connected)
+                await ChatHubConnection.SendAsync("DisconnectToChatGroup", ChatDto.Id);
         }
         if (MessageHubConnection is not null)
         {
@@ -267,7 +268,8 @@
             MessageHubConnection.Remove("ReceiveMessage");
             MessageHubConnection.Remove("RetrievedMessages");
 
-            await MessageHubConnection.SendAsync("LeaveChat", ChatDto.Id, User.Id);
+            if (MessageHubConnection.State == HubConnectionState.Connected)
+                await MessageHubConnection.SendAsync("LeaveChat", ChatDto.Id, User.Id);
         }
     }
 }
