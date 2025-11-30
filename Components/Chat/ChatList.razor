@@ -12,15 +12,23 @@
         @foreach (ChatDto chat in Chats)
         {
             <div class="chat">
-                <div class="chat-info" @onclick="() => OpenChat(chat)">
+                <div class="chat-info-container" @onclick="() => OpenChat(chat)">
+                    <div class="chat-info">
+                        <div class="chat-into-name">@chat.ChatName</div>
+                        @if (chat.Unread)
+                        {
+                            <div class="chat-info-preview">
+                                <div>@chat.MostRecent?.SenderEmail</div>
+                                <div class="chat-info-preview-message">@chat.MostRecent?.MessageContent</div>
+                            </div>
+                        }
+                    </div>
                     @if (chat.Unread)
                     {
                         <div class="inv-icon badge-icon"></div>
                     }
-                    <div>@chat.ChatName</div>
-                    <div>@chat.MostRecent?.MessageContent</div>
                 </div>
-                <button class="btn-danger">Leave</button>
+                <button class="btn-danger leave-btn">Leave</button>
             </div>
         }
     </div>
@@ -40,16 +48,6 @@
     {
         if (ChatHubConnection is not null)
         {
-            ChatHubConnection.On<ChatMessageDto>("NewChatMessage", (newMessage) =>
-            {
-                var chat = Chats.Where(c => c.Id == newMessage.ChatId).FirstOrDefault();
-                if (chat is not null)
-                {
-                    chat.Unread = true;
-                    chat.MostRecent = newMessage;
-                    InvokeAsync(StateHasChanged);
-                }
-            });
         }
     }
 
@@ -63,7 +61,6 @@
     {
         if (ChatHubConnection is not null)
         {
-            ChatHubConnection.Remove("NewChatMessage");
         }
     }
 }

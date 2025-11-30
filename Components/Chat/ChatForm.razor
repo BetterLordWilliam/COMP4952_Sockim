@@ -71,7 +71,7 @@
     <div class="chat-input">
         <label for="message-input">Message:</label>
         <div class="chat-input-controls">
-            <input id="message-input" @bind="_message" class="message-input" />
+            <textarea id="message-input" rows="1" @bind="_message" class="message-input" />
             <button class="btn-regular" @onclick="Send">
                 <img src="/images/Icons/arrow_upward_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Send" />
                 Send

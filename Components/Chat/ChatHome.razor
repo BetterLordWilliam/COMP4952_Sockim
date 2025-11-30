@@ -108,6 +108,22 @@
                 InvokeAsync(StateHasChanged);
             });
 
+            _chatHubConnection.On<ChatMessageDto>("NewChatMessage", (newMessage) =>
+            {
+                var chatIdx = _chats.FindIndex(c => c.Id == newMessage.ChatId);
+                try
+                {
+                    Console.WriteLine("NEW CHAT MESSAGE");
+                    _chats[chatIdx].Unread = true;
+                    _chats[chatIdx].MostRecent = newMessage;
+                    InvokeAsync(StateHasChanged);
+                }
+                catch (IndexOutOfRangeException ex)
+                {
+                    _errors.Add(new SockimError() { Message = "Internal Error: chat update failed." });
+                }
+            });
+
             _chatHubConnection.On<ChatDto>("RemovedFromChat", (ChatDto chat) =>
             {
                 if (_chatOpen)
@@ -132,8 +148,15 @@
             _chatHubConnection.On<ChatDto>("ChatUpdated", (ChatDto chat) =>
             {
                 int index = _chats.IndexOf(chat);
-                _chats[index] = chat;
-                InvokeAsync(StateHasChanged);
+                try
+                {
+                    _chats[index].ChatName = chat.ChatName;
+                    InvokeAsync(StateHasChanged);
+                }
+                catch (IndexOutOfRangeException ex)
+                {
+                    _errors.Add(new SockimError() { Message = "Internal error: chat update failed." });
+                }
             });
 
             _chatHubConnection.On<ChatInvitationDto>("IncomingInvitation", (ChatInvitationDto) =>
@@ -262,6 +285,7 @@
             _chatHubConnection.Remove("InvitationSent");
             _chatHubConnection.Remove("InvitationRejected");
             _chatHubConnection.Remove("Error");
+            _chatHubConnection.Remove("NewChatMessage");
 
             if (_chatHubConnection.State == HubConnectionState.Connected)
                 await _chatHubConnection.StopAsync();

@@ -2,6 +2,7 @@
 @using COMP4952_Sockim.Data
 @using COMP4952_Sockim.Models
 @using Microsoft.AspNetCore.SignalR.Client
+@using System.ComponentModel.DataAnnotations
 
 @inject IJSRuntime JSRuntime
 
@@ -15,7 +16,7 @@
                     <span class="message-meta"><b>@message.SenderEmail</b>, <b>@message.MessageDateTime</b></span>
                     @if (_editMessage && _editMessageId == message.Id) {
                         <div class="">
-                            <input type="text" @bind-value="@_updatedMessage" />
+                            <textarea class="message-edit-input" rows="5" @bind="@_updatedMessage" />
                             <div class="message-edit-options">
                                 <button class="btn-regular" type="button" @onclick="() => SaveMessageEdit(message, _updatedMessage)">
                                     <img src="/images/Icons/check_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Save" />
@@ -63,6 +64,7 @@
 
     private int _editMessageId = -1;
     private bool _editMessage = false;
+    [StringLength(500, ErrorMessage = "Cannot exceed 500 chars")]
     private string _updatedMessage = string.Empty;
     private ChatMessageDto? _deleteMessage = null;
     private ElementReference _messageListWrapper;

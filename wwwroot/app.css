@@ -150,7 +150,7 @@ body {
 
 /* generic input styles */
 
-input, .form-control {
+input, textarea, .form-control {
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--accent);
