@@ -113,7 +113,6 @@
                 int chatIdx = _chats.FindIndex(c => c.Id == newMessage.ChatId);
                 try
                 {
-                    Console.WriteLine("NEW CHAT MESSAGE");
                     _chats[chatIdx].Unread = true;
                     _chats[chatIdx].MostRecent = newMessage;
                     InvokeAsync(StateHasChanged);

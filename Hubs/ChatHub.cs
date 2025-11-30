@@ -114,10 +114,12 @@ public class ChatHub : Hub
 
             // Notify chat users that are not connected currently to the chat that it as updated
             ChatUserDto[] chatUsers = await _chatService.GetChatMembers(newChat.Id);
+            List<Task> chatUpdates = new ();
             foreach (ChatUserDto chatUser in chatUsers)
             {
-                await Clients.Group($"user-{chatUser.Id}").SendAsync("ChatUpdated", newChat);
+                chatUpdates.Add(Clients.Group($"user-{chatUser.Id}").SendAsync("ChatUpdated", newChat));
             }
+            Task.WaitAll(chatUpdates);
         }
         catch (ChatNotFoundException ex)
         {

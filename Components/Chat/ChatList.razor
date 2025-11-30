@@ -4,7 +4,6 @@
 @using Org.BouncyCastle.Crypto.Modes
 
 @rendermode InteractiveServer
-@implements IAsyncDisposable
 
 @if (User is not null)
 {
@@ -44,23 +43,9 @@
     [Parameter]
     public required ChatUser User { get; set; }
 
-    protected override async Task OnInitializedAsync()
-    {
-        if (ChatHubConnection is not null)
-        {
-        }
-    }
-
     private async Task OpenChat(ChatDto chat)
     {
         chat.Unread = false;
         await ChatOpened.InvokeAsync(chat);
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (ChatHubConnection is not null)
-        {
-        }
     }
 }

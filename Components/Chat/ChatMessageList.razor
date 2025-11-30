@@ -13,39 +13,44 @@
             @foreach (ChatMessageDto message in ChatMessages)
             {
                 <li style="background-color: @GetMessageColor(message.ChatUserId)">
-                    <span class="message-meta"><b>@message.SenderEmail</b>, <b>@message.MessageDateTime</b></span>
-                    @if (_editMessage && _editMessageId == message.Id) {
-                        <div class="">
-                            <textarea class="message-edit-input" rows="5" @bind="@_updatedMessage" />
-                            <div class="message-edit-options">
-                                <button class="btn-regular" type="button" @onclick="() => SaveMessageEdit(message, _updatedMessage)">
-                                    <img src="/images/Icons/check_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Save" />
-                                    Save
-                                </button>
-                                <button class="btn-danger" type="cancel" @onclick="() => CancelMessageEdit(message)">
-                                    <img src="/images/Icons/close_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Cancel" />
-                                    Cancel
-                                </button>
+                    <div class="message-wrapper">
+                        <div class="message-meta"><b>@message.SenderEmail</b>, <b>@message.MessageDateTime</b></div>
+                        @if (_editMessage && _editMessageId == message.Id)
+                        {
+                            <div class="">
+                                <textarea class="message-edit-input" rows="5" @bind="@_updatedMessage" />
+                                <div class="message-edit-options">
+                                    <button class="btn-regular" type="button"
+                                        @onclick="() => SaveMessageEdit(message, _updatedMessage)">
+                                        <img src="/images/Icons/check_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Save" />
+                                        Save
+                                    </button>
+                                    <button class="btn-danger" type="cancel" @onclick="() => CancelMessageEdit(message)">
+                                        <img src="/images/Icons/close_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Cancel" />
+                                        Cancel
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    } else {
-                        <p class="message-text">@message.MessageContent</p>
-                        @if(message.ChatUserId == User.Id) {
-                            <button class="btn-regular" type="button" disabled="@_editMessage"
-                                    @onclick="() => EditMesssage(message)" >
-                                <img src="/images/Icons/edit_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Edit" />
-                                Edit
-                            </button>
-                            <Confirm    Title="Delete Message"
-                                        OnModalDone="@MessageDeleteCallback"
-                                        @ref="_deleteMessageModal"></Confirm>
-                            <button class="btn-danger" type="button"
-                                    @onclick="() => MessageDelete(message)">
-                                <img src="/images/Icons/delete_forever_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Delete" />
-                                Delete
-                            </button>
                         }
-                    }
+                        else
+                        {
+                            <p class="message-text">@message.MessageContent</p>
+                            @if (message.ChatUserId == User.Id)
+                            {
+                                <button class="btn-regular" type="button" disabled="@_editMessage"
+                                    @onclick="() => EditMesssage(message)">
+                                    <img src="/images/Icons/edit_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Edit" />
+                                    Edit
+                                </button>
+                                <Confirm Title="Delete Message" OnModalDone="@MessageDeleteCallback" @ref="_deleteMessageModal">
+                                </Confirm>
+                                <button class="btn-danger" type="button" @onclick="() => MessageDelete(message)">
+                                    <img src="/images/Icons/delete_forever_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Delete" />
+                                    Delete
+                                </button>
+                            }
+                        }
+                    </div>
                 </li>
             }
         }
@@ -84,8 +89,6 @@
         _editMessage = true;
         _updatedMessage = message.MessageContent;
         _editMessageId = message.Id;
-
-        Console.WriteLine(message.Id);
 
         InvokeAsync(StateHasChanged);
     }

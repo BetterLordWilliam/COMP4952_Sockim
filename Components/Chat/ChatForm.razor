@@ -123,12 +123,6 @@
                 InvokeAsync(StateHasChanged);
             });
 
-            ChatHubConnection.On<ChatDto>("ChatUpdated", (ChatDto chat) => {
-                Console.WriteLine($"{chat.ChatOwnerId}, {chat.ChatName}");
-                // ChatDto = chat;
-                InvokeAsync(StateHasChanged);
-            });
-
             await ChatHubConnection.SendAsync("ConnectToChatGroup", ChatDto.Id);
             await ChatHubConnection.SendAsync("GetChatMembers", ChatDto.Id);
         }
@@ -256,7 +250,6 @@
             ChatHubConnection.Remove("MemberJoined");
             ChatHubConnection.Remove("MemberRemoved");
             ChatHubConnection.Remove("RetrievedUsers");
-            ChatHubConnection.Remove("ChatUpdated");
 
             if (ChatHubConnection.State == HubConnectionState.Connected)
                 await ChatHubConnection.SendAsync("DisconnectToChatGroup", ChatDto.Id);
