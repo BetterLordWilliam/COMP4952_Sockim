@@ -73,7 +73,11 @@
 }
 
 .leave-btn {
-    width: 75px;
+    width: 130px;
+    display: flex;
+    flex-direction: row;
+    gap: 4px;
+    z-index: 100;
 }
 
 .chat-icon {

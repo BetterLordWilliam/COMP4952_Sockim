@@ -1,5 +1,6 @@
 @using COMP4952_Sockim.Data
 @using COMP4952_Sockim.Models
+@using COMP4952_Sockim.Components.Elements
 @using Microsoft.AspNetCore.SignalR.Client
 @using Org.BouncyCastle.Crypto.Modes
 
@@ -7,11 +8,12 @@
 
 @if (User is not null)
 {
+    <Confirm OnModalDone="@RemoveConfirmCallback" Title="Leave chat" @ref="_confirmLeave" />
     <div class="chat-list">
         @foreach (ChatDto chat in Chats)
         {
-            <div class="chat">
-                <div class="chat-info-container" @onclick="() => OpenChat(chat)">
+            <div class="chat" @onclick="() => OpenChat(chat)">
+                <div class="chat-info-container">
                     <div class="chat-info">
                         <div class="chat-info-name">@chat.ChatName</div>
                         @if (chat.Unread)
@@ -27,7 +29,10 @@
                         <div class="chat-icon badge-icon"></div>
                     }
                 </div>
-                <button class="btn-danger leave-btn">Leave</button>
+                <button class="btn-danger leave-btn" type="button" @onclick="() => RemoveMember(User.Id, chat.Id, _confirmLeave)" @onclick:stopPropagation>
+                    <img src="/images/Icons/arrow_back_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" alt="Leave" />
+                    Leave Chat
+                </button>
             </div>
         }
     </div>
@@ -42,6 +47,59 @@
     public required List<ChatDto> Chats { get; set; }
     [Parameter]
     public required ChatUser User { get; set; }
+
+    private Confirm? _confirmLeave;
+    private int? _chatToRemoveFrom;
+    private int? _memberToRemove;
+
+    private async Task RemoveConfirmCallback(bool result)
+    {
+        if (result && _memberToRemove is not null && _memberToRemove is not null && ChatHubConnection is not null)
+        {
+            try
+            {
+                await ChatHubConnection.SendAsync("RemoveUserFromChat", _chatToRemoveFrom, _memberToRemove);
+                _memberToRemove = null;
+                _chatToRemoveFrom = null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error removing member: {ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Remove a member from the chat.
+    /// Only the chat owner can remove members.
+    /// Calls ChatHub to remove the user.
+    /// </summary>
+    private async Task RemoveMember(int memberId, int chatId, Confirm? confirm)
+    {
+        if (ChatHubConnection is null)
+        {
+            Console.WriteLine("ChatHub connection not available");
+            return;
+        }
+
+        if (User is null)
+        {
+            Console.WriteLine("Invalid state");
+            return;
+        }
+
+        if (confirm is null)
+        {
+            Console.WriteLine("Invalid state");
+            return;
+        }
+
+        // bool confirm = await JSRuntime.InvokeAsync<bool>("confirm", "are you sure?");
+        _memberToRemove = memberId;
+        _chatToRemoveFrom = chatId;
+
+        confirm?.ShowModal();
+    }
 
     private async Task OpenChat(ChatDto chat)
     {
