@@ -235,10 +235,26 @@
         if (_chatHubConnection.State == HubConnectionState.Connected)
         {
             await _chatHubConnection.SendAsync("RemoveChatUser", _user.Id);
+
+            _chatHubConnection.Remove("ChatCreated");
+            _chatHubConnection.Remove("RetrievedChats"); 
+            _chatHubConnection.Remove("RemovedFromChat");
+            _chatHubConnection.Remove("MemberRemoved");
+            _chatHubConnection.Remove("ChatUpdated");
+            _chatHubConnection.Remove("IncomingInvitation");
+            _chatHubConnection.Remove("InvitationAccepted");
+            _chatHubConnection.Remove("RetrievedInvitations");
+            _chatHubConnection.Remove("InvitationSent");
+            _chatHubConnection.Remove("InvitationRejected");
+            _chatHubConnection.Remove("Error");
+
             await _chatHubConnection.StopAsync();
         }
         if (_messageHubConnection.State == HubConnectionState.Connected)
         {
+            _messageHubConnection.Remove("Error");
+            _messageHubConnection.Remove("MessageDeletedSuccess");
+
             await _messageHubConnection.StopAsync();
         }
     }
