@@ -468,6 +468,8 @@ public class ChatHub : Hub
 
             await Clients.Group($"user-{invitationDto.ReceiverId}")
                 .SendAsync("InvitationAccepted", updatedChat);
+            await Clients.Group($"chat-{updatedChat.Id}")
+                .SendAsync("MemberJoined", chatUserDto, updatedChat);
 
             _logger.LogInformation($"{invitationDto.ChatId}, SENDING CHAT GROUP THAT NEW USER IS MEMBER OF THE GROUP");
 
@@ -535,8 +537,10 @@ public class ChatHub : Hub
 
 #region:message notifs
 
-    public async Task NewChatMessage(ChatDto chat, ChatMessageDto message)
+    public async Task NewChatMessage(int chatId, ChatMessageDto message)
     {
+        ChatDto chat = await _chatService.GetChatById(chatId);
+        
         List<Task> notifs = new List<Task>();
         foreach (var userId in chat.ChatMemberIds)
         {

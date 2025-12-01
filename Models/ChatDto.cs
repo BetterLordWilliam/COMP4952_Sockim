@@ -20,4 +20,16 @@ public class ChatDto : IEquatable<ChatDto>
 
         return Id == other.Id;
     }
+
+    public override string ToString()
+    {
+        return $"{{ Id: {Id}, "
+            + $"ChatName: {ChatName},"
+            + $"ChatOwnerId: {ChatOwnerId}, "
+            + $"ChatOwnerEmail: {ChatOwnerEmail}, "
+            + $"ChatMemberIds: {string.Join(',', ChatMemberIds)}, "
+            + $"InvitedEmails: {string.Join(',', InvitedEmails)}, "
+            + $"Unread: {Unread}, "
+            + $"MostRecent: {MostRecent} }}";
+    }
 }

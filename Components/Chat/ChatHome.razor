@@ -110,16 +110,24 @@
 
             _chatHubConnection.On<ChatMessageDto>("NewChatMessage", (newMessage) =>
             {
+                @* Console.WriteLine($"[ChatHome] {_user.Id}, new message in chat {newMessage.ChatId}"); *@
+
                 int chatIdx = _chats.FindIndex(c => c.Id == newMessage.ChatId);
+
                 try
                 {
+                    Console.WriteLine(_chats[chatIdx]);
+
                     _chats[chatIdx].Unread = true;
                     _chats[chatIdx].MostRecent = newMessage;
-                    InvokeAsync(StateHasChanged);
                 }
                 catch (IndexOutOfRangeException ex)
                 {
                     _errors.Add(new SockimError() { Message = "Internal Error: chat update failed." });
+                }
+                finally
+                {
+                    InvokeAsync(StateHasChanged);
                 }
             });
 
@@ -150,11 +158,14 @@
                 try
                 {
                     _chats[index].ChatName = chat.ChatName;
-                    InvokeAsync(StateHasChanged);
                 }
                 catch (IndexOutOfRangeException ex)
                 {
                     _errors.Add(new SockimError() { Message = "Internal error: chat update failed." });
+                }
+                finally
+                {
+                    InvokeAsync(StateHasChanged);
                 }
             });
 
@@ -167,12 +178,42 @@
 
             _chatHubConnection.On<ChatDto>("InvitationAccepted", (ChatDto newChat) =>
             {
+                @* Console.WriteLine("[ChatHome] new chat added.");
+                Console.WriteLine(newChat); *@
+
                 _chats.Add(newChat);
                 _infoMessages.Add(new SockimMessage()
                 {
                     Message = "chat invitation accepted"
                 });
                 InvokeAsync(StateHasChanged);
+            });
+
+            _chatHubConnection.On<ChatUserDto, ChatDto>("MemberJoined", (ChatUserDto newUser, ChatDto updatedChat) =>
+            {
+                Console.WriteLine($"[ChatHome] member {newUser.Id} joined {updatedChat.Id} {updatedChat.ChatName}");
+
+                int index = _chats.FindIndex(c => c.Id == updatedChat.Id);
+                try
+                {
+                    _chats[index] = updatedChat;
+
+                    _infoMessages.Add(new SockimMessage()
+                    {
+                        Message = $"user joined \"{newUser.Email}\" chat \"{updatedChat.ChatName}\""
+                    });
+                }
+                catch (IndexOutOfRangeException ex)
+                {
+                    _errors.Add(new SockimError()
+                    {
+                        Message = "failed to add user to chat"
+                    });
+                }
+                finally
+                {
+                    InvokeAsync(StateHasChanged);
+                }
             });
 
             _chatHubConnection.On<ChatInvitationDto[]>("RetrievedInvitations", (ChatInvitationDto[] invitations) =>

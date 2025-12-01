@@ -224,7 +224,7 @@
             if (MessageHubConnection is not null && ChatHubConnection is not null)
             {
                 await MessageHubConnection.SendAsync("SendMessage", ChatDto.Id, newMessage);
-                await ChatHubConnection.SendAsync("NewChatMessage", ChatDto, newMessage);
+                await ChatHubConnection.SendAsync("NewChatMessage", ChatDto.Id, newMessage);
 
                 @* List<Task> notifs = new ();
                 foreach(var client in ChatDto.ChatMemberIds)
