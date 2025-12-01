@@ -108,12 +108,14 @@
         
         if (ChatHubConnection is not null)
         {
-            ChatHubConnection.On<ChatUserDto>("MemberJoined", (ChatUserDto user) => {
+            ChatHubConnection.On<ChatUserDto, ChatDto>("MemberJoined", (ChatUserDto user, ChatDto chat) => {
+                ChatDto = chat;
                 _chatMembers.Add(user);
                 InvokeAsync(StateHasChanged);
             });
 
             ChatHubConnection.On<ChatDto, ChatUserDto>("MemberRemoved", (ChatDto chat, ChatUserDto chatUser) => {
+                ChatDto = chat;
                 _chatMembers.Remove(chatUser);
                 InvokeAsync(StateHasChanged);
             });
@@ -224,7 +226,7 @@
             if (MessageHubConnection is not null && ChatHubConnection is not null)
             {
                 await MessageHubConnection.SendAsync("SendMessage", ChatDto.Id, newMessage);
-                await ChatHubConnection.SendAsync("NewChatMessage", ChatDto, newMessage);
+                await ChatHubConnection.SendAsync("NewChatMessage", ChatDto.Id, newMessage);
 
                 @* List<Task> notifs = new ();
                 foreach(var client in ChatDto.ChatMemberIds)
