@@ -13,7 +13,6 @@ You can install the addon for Firefox [here](https://addons.mozilla.org/en-CA/fi
 You can see the extension repository [here](https://github.com/BetterLordWilliam/COMP4952_Sockim_Extension.git)!
 
 ## About the Application
-
 Sockim is an ASP.NET powered instant messaging application that can be used as an extension in the Firefox browser. Chat with multiple other users in a group or you chat with 1 other user directly. The use case: Quick communication while browsing. Users will not have to switch windows or use multiple windows. Furthermore, our application will grant users access to searchable message history for all their conversations and tools for message editing and mass or individual message deletion. Our goals for this project are to keep users focused while facilitating instant messaging communication and to give users control over their data.
 
 ## Interface Screenshots
