@@ -8,6 +8,8 @@ Browser based instant messaging application.
 
 You can try the application [here](https://sockim.azurewebsites.net)!
 
+You can see the extension repository [here](https://github.com/BetterLordWilliam/COMP4952_Sockim_Extension.git)!
+
 ## Required Software
 
 **dotnet-ef tools**
