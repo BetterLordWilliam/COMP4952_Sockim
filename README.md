@@ -10,17 +10,17 @@ You can try the application [here](https://sockim.azurewebsites.net)!
 
 ## Required Software
 
-* dotnet-ef tools
-
-```powershell
-dotnet install tool -g dotnet-ef --version 9.0.11 --allow-downgrade
-```
+**dotnet-ef tools**
 
 > [!NOTE]
 > This is a .NET 9 application, and using the latest version of `dotnet-ef` will not work.
+> ```powershell
+> dotnet tool install -g dotnet-ef --version 9.0.11 --allow-downgrade
+> ```
 
-* MySQL (used for the database)
-  [lts version latest tested with](https://dev.mysql.com/downloads/mysql/)
+**MySQL (used for the database)**
+
+[lts version latest tested with](https://dev.mysql.com/downloads/mysql/)
 
 > [!NOTE]
 > The development environment is configured for a machine that has MySQL installed on it.
@@ -44,7 +44,7 @@ dotnet restore
 source C:\\path\\to\\project\\data\\dcl.sql
 ```
 
-6. Now you should be able to apply the application's migrations
+6. Now you should be able to apply the application's migrations & possess a development ready instance of `sockimdatabase`
 
 ```powershell
 dotnet ef database update
