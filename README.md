@@ -40,8 +40,8 @@ dotnet restore
 4. Copy the path to the [`dcl.sql` sql script](./data/dcl.sql), which defines these attributes
 5. Login to MySQL in a shell and execute the script (using of course your path):
 
-```powershell
-mysql> source C:\\path\\to\\project\\data\\dcl.sql
+```sql
+source C:\\path\\to\\project\\data\\dcl.sql
 ```
 
 6. Now you should be able to apply the application's migrations
