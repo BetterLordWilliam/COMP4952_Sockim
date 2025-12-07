@@ -484,5 +484,4 @@ $RECYCLE.BIN/
 *.swp
 
 # environment files
-
-./appsettings.Production.json
+appsettings.Production.json
